@@ -1,9 +1,13 @@
-from maze import Maze
-import pygame
 import random
+from options import *
 
 
 def generate_level(world_map):
+
+    def maybe(x, y):
+        return any([world_map[x - 1][y], world_map[x + 1][y],
+                    world_map[x][y - 1], world_map[x][y + 1]])
+
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
         for y in range(len(world_map[x])):
@@ -16,33 +20,13 @@ def generate_level(world_map):
                     if world_map[x - 1][y]:
                         potential_end.append(cell)
                 elif y != 0 and y != len(world_map[x]) - 1:
-                    if random.random() <= 0.1:
+                    if random.random() <= 0.1 and maybe(x, y):
                         cell.kill()
     start, end = random.choice(potential_start), random.choice(potential_end)
     x, y = start.rect.x, start.rect.y
     start.kill(), end.kill()
     Wall(-1, y // CELL_W)
     return x, y
-
-
-####### SETUP ######
-FPS = 60
-SIZE = WIDTH, HEIGHT = 820, 820
-CELL_W = 20
-SPEED = 2
-MAZE_S = 20
-pygame.init()
-pygame.display.set_caption('Лабиринт')
-screen = pygame.display.set_mode(SIZE)
-running = True
-clock = pygame.time.Clock()
-maze = Maze(MAZE_S, MAZE_S).get_maze()
-####################
-all_groups = pygame.sprite.Group()
-walls_groups = pygame.sprite.Group()
-doors_groups = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-####################
 
 
 class Door(pygame.sprite.Sprite):
@@ -103,9 +87,16 @@ class Player(pygame.sprite.Sprite):
             self.rect.y = y
 
 
-pos = generate_level(maze)
-player = Player(pos)
-Door(pos[0] // CELL_W, pos[1] // CELL_W, is_open=True, start=True)
+def generate_entity():
+    pos = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
+    player = Player(pos)
+    Door(pos[0] // CELL_W, pos[1] // CELL_W, is_open=True, start=True)
+    return player
+
+
+# Окно Pygame
+player = generate_entity()
+running = True
 while running:
     screen.fill((0, 0, 0))
     for event in pygame.event.get():
@@ -116,9 +107,7 @@ while running:
         walls_groups.empty()
         doors_groups.empty()
         player_group.empty()
-        pos = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
-        player = Player(pos)
-        Door(pos[0] // CELL_W, pos[1] // CELL_W, is_open=True, start=True)
+        player = generate_entity()
     all_groups.update()
     all_groups.draw(screen)
     player_group.draw(screen)
