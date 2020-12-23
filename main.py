@@ -3,28 +3,17 @@ import pygame
 import random
 
 
-def list_from_maze(rows, cols):
-    m = Maze(rows, cols)
-    world_map = []
-    for row in range(rows + 3):
-        row_line = []
-        for col in range(cols + 3):
-            row_line.append(0) if m.maze[row, col] else row_line.append(1)
-        world_map.append(row_line)
-    return world_map if 0 in world_map[1] else False
-
-
 def generate_level(world_map):
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
         for y in range(len(world_map[x])):
-            if world_map[x][y]:
+            if not world_map[x][y]:
                 cell = Wall(x, y)
                 if x == 0:
-                    if not world_map[x + 1][y]:
+                    if world_map[x + 1][y]:
                         potential_start.append(cell)
                 elif x == len(world_map) - 1:
-                    if not world_map[x - 1][y]:
+                    if world_map[x - 1][y]:
                         potential_end.append(cell)
                 elif y != 0 and y != len(world_map[x]) - 1:
                     if random.random() <= 0.1:
@@ -41,15 +30,13 @@ FPS = 60
 SIZE = WIDTH, HEIGHT = 820, 820
 CELL_W = 20
 SPEED = 2
-MAZE_S = 38
+MAZE_S = 20
 pygame.init()
 pygame.display.set_caption('Лабиринт')
 screen = pygame.display.set_mode(SIZE)
 running = True
 clock = pygame.time.Clock()
-maze = False
-while not maze:
-    maze = list_from_maze(MAZE_S, MAZE_S)
+maze = Maze(MAZE_S, MAZE_S).get_maze()
 ####################
 all_groups = pygame.sprite.Group()
 walls_groups = pygame.sprite.Group()
@@ -129,10 +116,7 @@ while running:
         walls_groups.empty()
         doors_groups.empty()
         player_group.empty()
-        maze = False
-        while not maze:
-            maze = list_from_maze(MAZE_S, MAZE_S)
-        pos = generate_level(maze)
+        pos = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
         player = Player(pos)
         Door(pos[0] // CELL_W, pos[1] // CELL_W, is_open=True, start=True)
     all_groups.update()
