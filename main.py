@@ -9,7 +9,7 @@ def list_from_maze(rows, cols):
     for row in range(rows + 3):
         row_line = []
         for col in range(cols + 3):
-            row_line.append(0) if all(m.maze[row][col]) else row_line.append(1)
+            row_line.append(0) if m.maze[row, col] else row_line.append(1)
         world_map.append(row_line)
     return world_map if 0 in world_map[1] else False
 
