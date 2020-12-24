@@ -16,3 +16,14 @@ all_groups = pygame.sprite.Group()
 walls_groups = pygame.sprite.Group()
 doors_groups = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
+####################
+font = pygame.font.SysFont("Console", 18)
+PATHTIME = pygame.USEREVENT + 1
+pygame.time.set_timer(PATHTIME, 100)
+
+
+def update_fps():
+    fps = str(int(clock.get_fps()))
+    fps_text = font.render(fps, True, pygame.Color("Red"))
+    return fps_text
