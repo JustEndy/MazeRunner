@@ -35,13 +35,13 @@ def generate_level(world_map):
 def generate_entity():
     pos_p, pos_e, wmap = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     player = Player(pos_p)
-    Enemy(pos_e, player, wmap)
+    monster = Enemy(pos_e, player, wmap)
     Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
-    return player
+    return player, monster
 
 
 # Окно Pygame
-player = generate_entity()
+player, monster = generate_entity()
 running = True
 while running:
     screen.fill((0, 0, 0))
@@ -49,14 +49,21 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == PATHTIME:
-            enemy_group.update(path=True)
+            monster.update_goal()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                monster.change_behave()
+            elif event.key == pygame.K_BACKSPACE:
+                print(monster.aggressive)
+                print(monster.path)
+                print(monster.cell_x, monster.cell_y)
     if player.rect.x + player.rect.w > WIDTH:
         all_groups.empty()
         walls_groups.empty()
         doors_groups.empty()
         player_group.empty()
         enemy_group.empty()
-        player = generate_entity()
+        player, monster = generate_entity()
     all_groups.update()
     all_groups.draw(screen)
     player_group.draw(screen)

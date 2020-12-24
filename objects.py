@@ -76,31 +76,68 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = x + 2, y + 2
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
-        self.path = False
+        self.path = []
         self.w_map = w_map
+        self.aggressive = True
+        self.goal = False
+        self.speed = SPEED * 0.75
 
-    def update(self, path=False):
-        if path:
-            self.path = self.get_path(self.bfs())
-        if self.path and len(self.path) > 1:
-            x1, y1 = self.rect.x, self.rect.y
-            x2, y2 = self.path[1]
-            x2, y2 = x2 * CELL_W + 2, y2 * CELL_W + 2
-            if x1 < x2:
-                self.x += SPEED
-            elif x1 > x2:
-                self.x -= SPEED
-            if y1 < y2:
-                self.y += SPEED
-            elif y1 > y2:
-                self.y -= SPEED
-        self.rect.x, self.rect.y = round(self.x), round(self.y)
+    def change_behave(self):
+        self.aggressive = not self.aggressive
+        self.path = []
+
+    def random_passive(self):
+        while True:
+            x, y = randint(1, len(self.w_map) - 1), randint(1, len(self.w_map[0]) - 1)
+            if self.w_map[x][y]:
+                return x, y
+
+    def update_goal(self):
+        if self.aggressive:
+            self.goal = True
+            goal = self.player.rect.x // CELL_W, self.player.rect.y // CELL_W
+            self.path = self.get_path(self.bfs(goal))
+            self.speed = SPEED
+        else:
+            if len(self.path) <= 1:
+                print('changed')
+                self.speed = SPEED * 0.6
+                goal = self.random_passive()
+                self.path = self.get_path(self.bfs(goal))
+
+    def update(self):
+        if len(self.path) <= 1:
+            self.goal = False
+            return
+        x, y = self.rect.x, self.rect.y
+        x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
+        x2, y2 = self.path[1]
+        if (self.cell_x, self.cell_y) == (x2, y2):
+            self.path.pop(0)
+            return
+        x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
+        if x1 < x2:
+            self.x += self.speed
+        elif x1 > x2:
+            self.x -= self.speed
+        self.rect.x = int(self.x)
+        if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.x = x
+            self.x = x
+        if y1 < y2:
+            self.y += self.speed
+        elif y1 > y2:
+            self.y -= self.speed
+        self.rect.y = int(self.y)
+        if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.y = y
+            self.y = y
         self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
 
     def get_path(self, args):
         start, goal, visited = args
         if goal not in visited.keys():
-            return False
+            return []
         path = [goal]
         cell = visited[goal]
         while True:
@@ -110,10 +147,9 @@ class Enemy(pygame.sprite.Sprite):
             cell = visited[cell]
         return path[::-1]
 
-    def bfs(self):
+    def bfs(self, goal):
         """Алгоритм поиска пути в ширину"""
         start = self.cell_x, self.cell_y
-        goal = self.player.rect.x // CELL_W, self.player.rect.y // CELL_W
 
         def get_next_nodes(self, x, y):
             maze = self.w_map
