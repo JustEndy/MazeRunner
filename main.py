@@ -1,11 +1,14 @@
+"""Основной модуль, корень проекта с логикой"""
 import random
 from objects import *
 from options import *
+score = 0
 
 
 def generate_level(world_map):
-
+    """Создание уровня"""
     def maybe(x, y):
+        """Проверка, есть ли вокруг данной точки ещё свободные пути"""
         return any([world_map[x - 1][y], world_map[x + 1][y],
                     world_map[x][y - 1], world_map[x][y + 1]])
 
@@ -33,11 +36,24 @@ def generate_level(world_map):
 
 
 def generate_entity():
+    """Создание основных объектов"""
     pos_p, pos_e, wmap = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     player = Player(pos_p)
-    monster = Enemy(pos_e, player, wmap)
+    monster = Enemy(pos_e, player, wmap) if not score else Enemy(pos_e, player, wmap, 0.4 + score * 0.1)
     Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
     return player, monster
+
+
+def restart():
+    """Перезапуск всей сессии"""
+    # Очистка всех спрайтовых групп
+    all_groups.empty()
+    walls_groups.empty()
+    doors_groups.empty()
+    player_group.empty()
+    enemy_group.empty()
+    # Создаём сущности
+    return generate_entity()
 
 
 # Окно Pygame
@@ -54,20 +70,17 @@ while running:
             if event.key == pygame.K_RETURN:
                 monster.change_behave()
             elif event.key == pygame.K_BACKSPACE:
+                # Блок отладки по нажатию на Бэкспейс
                 print(monster.aggressive)
-                print(monster.path)
-                print(monster.cell_x, monster.cell_y)
-    if player.rect.x + player.rect.w > WIDTH:
-        all_groups.empty()
-        walls_groups.empty()
-        doors_groups.empty()
-        player_group.empty()
-        enemy_group.empty()
-        player, monster = generate_entity()
+                print(monster.speed, monster.speed_coef)
+    if player.rect.x + player.rect.w > HEIGHT or player.lost:
+        score += player.score()
+        player, monster = restart()
     all_groups.update()
     all_groups.draw(screen)
     player_group.draw(screen)
     screen.blit(update_fps(), (10, 0))
+    screen.blit(font.render(str(score), True, pygame.Color("Red")), (50, 0))
     pygame.display.flip()
     clock.tick(FPS)
 pygame.quit()

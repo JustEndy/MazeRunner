@@ -1,3 +1,4 @@
+"""Модуль с физ. объектами, все сущности и блоки"""
 from options import *
 from collections import deque
 
@@ -5,15 +6,18 @@ from collections import deque
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, is_open=False, start=False):
         super().__init__(all_groups, doors_groups)
+        # Физический объект
         self.image = pygame.Surface((20, 20))
         pygame.draw.rect(self.image, (0, 0, 0), (0, 0, 20, 20))
         self.rect = self.image.get_rect()
+        # Система координат
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
-        ###
+        # Логика
         self.is_open = is_open
         self.start = start
 
     def update(self, *args):
+        """Логика двери, закрытие/открытие"""
         wall = pygame.sprite.spritecollide(self, walls_groups, False)
         if wall and self.is_open:
             wall[0].kill()
@@ -32,19 +36,31 @@ class Wall(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (150, 150, 150), (0, 0, 20, 20))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
+        # Это просто стена, что вы от неё ожидаете :)
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos):
         x, y = pos
         super().__init__(all_groups, player_group)
+        # Физический объект
         self.image = pygame.Surface((15, 15))
         pygame.draw.rect(self.image, (200, 200, 200), (0, 0, 15, 15))
         self.rect = self.image.get_rect()
+        # Система координат
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
+        # Для логики победы/поражения
+        self.lost = False
+
+    def score(self):
+        """Обновление переменной Score"""
+        if self.lost:
+            return -1
+        return 1
 
     def update(self):
+        """Передвижение"""
         btns = pygame.key.get_pressed()
         x, y = self.rect.x, self.rect.y
         if btns[pygame.K_LEFT]:
@@ -66,46 +82,63 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos, player, w_map):
+    def __init__(self, pos, player, w_map, coef=0.4):
         x, y = pos
         super().__init__(all_groups, enemy_group)
+        # Физический объект
         self.image = pygame.Surface((15, 15))
         pygame.draw.rect(self.image, (225, 175, 175), (0, 0, 15, 15))
         self.rect = self.image.get_rect()
+        # Всё, что связано с передвижением и системой координат
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
         self.path = []
         self.w_map = w_map
-        self.aggressive = True
+        # Сосотояние монстра, Агрессия/Пассивность
+        self.aggressive = False
+        # Есть ли цель у монстра (Логика)
         self.goal = False
-        self.speed = SPEED * 0.75
+        # Скорость
+        self.speed_coef = coef
+        self.speed = SPEED * self.speed_coef
+
+    def change_speed(self):
+        """Изменение скорости монстра в зависимости от переменной Score"""
+        pass
 
     def change_behave(self):
+        """Изменение поведения Агрессивное/Пассивное, влияет на цель монстра"""
         self.aggressive = not self.aggressive
         self.path = []
 
     def random_passive(self):
+        """Возвращает рандомную точку внутри лабиринта"""
         while True:
             x, y = randint(1, len(self.w_map) - 1), randint(1, len(self.w_map[0]) - 1)
             if self.w_map[x][y]:
                 return x, y
 
     def update_goal(self):
+        """Обновляем цель монстра Игрок/Точка в лабиринте"""
         if self.aggressive:
             self.goal = True
             goal = self.player.rect.x // CELL_W, self.player.rect.y // CELL_W
             self.path = self.get_path(self.bfs(goal))
-            self.speed = SPEED
+            self.speed = SPEED * self.speed_coef * 2
         else:
             if len(self.path) <= 1:
                 print('changed')
-                self.speed = SPEED * 0.6
+                self.speed = SPEED * self.speed_coef
                 goal = self.random_passive()
                 self.path = self.get_path(self.bfs(goal))
 
     def update(self):
+        """Передвижение"""
+        if (self.cell_x, self.cell_y) == (self.player.rect.x // CELL_W, self.player.rect.y // CELL_W):
+            self.player.lost = True
+            return
         if len(self.path) <= 1:
             self.goal = False
             return
@@ -135,6 +168,7 @@ class Enemy(pygame.sprite.Sprite):
         self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
 
     def get_path(self, args):
+        """Возвращает список координат, путь монстра"""
         start, goal, visited = args
         if goal not in visited.keys():
             return []

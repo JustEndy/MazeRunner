@@ -1,3 +1,4 @@
+"""Ворованный и переработанный модуль для генерации лабиринта :)"""
 import numpy as np
 from random import randint, shuffle
 import collections
