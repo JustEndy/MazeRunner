@@ -1,6 +1,7 @@
 """Модуль с физ. объектами, все сущности и блоки"""
 from options import *
 from collections import deque
+import math
 
 
 class Door(pygame.sprite.Sprite):
@@ -44,10 +45,11 @@ class Player(pygame.sprite.Sprite):
         x, y = pos
         super().__init__(all_groups, player_group)
         # Физический объект
-        self.image = pygame.Surface((15, 15))
-        pygame.draw.rect(self.image, (200, 200, 200), (0, 0, 15, 15))
+        self.image = pygame.Surface((10, 10))
+        pygame.draw.rect(self.image, (155, 255, 155), (0, 0, 15, 15))
         self.rect = self.image.get_rect()
         # Система координат
+        self.angle = 0
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
         # Для логики победы/поражения
@@ -59,26 +61,43 @@ class Player(pygame.sprite.Sprite):
             return -1
         return 1
 
+    def change_angle(self, mouse_pos):
+        """Меняем угол направления взгляда"""
+        delta_mouse_pos = CENTER[0] - mouse_pos[0]
+        self.angle += SENSITIVITY * delta_mouse_pos
+        self.angle = (360 + self.angle) % 360 if self.angle < 0 else self.angle % 360
+
     def update(self):
         """Передвижение"""
         btns = pygame.key.get_pressed()
         x, y = self.rect.x, self.rect.y
-        if btns[pygame.K_LEFT]:
-            self.x -= SPEED
-        if btns[pygame.K_RIGHT]:
-            self.x += SPEED
-        self.rect.x = round(self.x)
-        if pygame.sprite.spritecollideany(self, walls_groups):
-            self.rect.x = x
-            self.x = x
-        if btns[pygame.K_UP]:
-            self.y -= SPEED
-        if btns[pygame.K_DOWN]:
-            self.y += SPEED
-        self.rect.y = round(self.y)
+        cos, sin = math.cos(math.radians(self.angle)), \
+                   math.sin(math.radians(self.angle))
+
+        if btns[pygame.K_UP] or btns[pygame.K_w]:
+            if pygame.key.get_mods() == 4097:
+                self.y += cos * SPEED
+                self.x += sin * SPEED
+            else:
+                self.y += cos * SPEED * 0.6
+                self.x += sin * SPEED * 0.6
+        if btns[pygame.K_DOWN] or btns[pygame.K_s]:
+            self.y -= cos * SPEED * 0.5
+            self.x -= sin * SPEED * 0.5
+        if btns[pygame.K_LEFT] or btns[pygame.K_a]:
+            self.y -= sin * SPEED * 0.6
+            self.x += cos * SPEED * 0.6
+        if btns[pygame.K_RIGHT] or btns[pygame.K_d]:
+            self.y += sin * SPEED * 0.6
+            self.x -= cos * SPEED * 0.6
+        self.rect.y = math.ceil(self.y)
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.y = y
             self.y = y
+        self.rect.x = math.ceil(self.x)
+        if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.x = x
+            self.x = x
 
 
 class Enemy(pygame.sprite.Sprite):

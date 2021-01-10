@@ -2,8 +2,10 @@
 import pygame
 from maze import *
 
+SENSITIVITY = 0.02
 FPS = 60
 SIZE = WIDTH, HEIGHT = 1280, 820
+CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = 20
 SPEED = 2
 MAZE_S = 20
@@ -25,7 +27,7 @@ pygame.time.set_timer(PATHTIME, 100)
 
 
 def update_fps():
-    fps = str(int(clock.get_fps()))
+    fps = 'FPS ' + str(int(clock.get_fps()))
     fps_text = font.render(fps, True, pygame.Color("Red"))
     return fps_text
 

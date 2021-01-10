@@ -59,6 +59,7 @@ def restart():
 # Окно Pygame
 player, monster = generate_entity()
 running = True
+pygame.mouse.set_visible(False)
 while running:
     screen.fill((0, 0, 0))
     for event in pygame.event.get():
@@ -71,16 +72,32 @@ while running:
                 monster.change_behave()
             elif event.key == pygame.K_BACKSPACE:
                 # Блок отладки по нажатию на Бэкспейс
+                print(player.angle)
                 print(monster.aggressive)
                 print(monster.speed, monster.speed_coef)
+            elif event.key == pygame.K_ESCAPE:
+                running = False
+
+    # Меняем угол направления взгляда с помощью мышки
+    mouse_pos = pygame.mouse.get_pos()
+    if mouse_pos != CENTER and 0 < mouse_pos[0] < WIDTH and 0 < mouse_pos[1] < HEIGHT:
+        player.change_angle(mouse_pos)
+        pygame.mouse.set_pos(CENTER)
+
+    # Обновляем счёт
     if player.rect.x + player.rect.w > HEIGHT or player.lost:
         score += player.score()
         player, monster = restart()
+
     all_groups.update()
     all_groups.draw(screen)
     player_group.draw(screen)
-    screen.blit(update_fps(), (10, 0))
-    screen.blit(font.render(str(score), True, pygame.Color("Red")), (50, 0))
+    line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2,\
+               math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2
+    pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
+                                               player.y + player.rect.height // 2), line_pos)
+    screen.blit(update_fps(), (850, 0))
+    screen.blit(font.render('SCORE: ' + str(score), True, pygame.Color("Red")), (850, 50))
     pygame.display.flip()
     clock.tick(FPS)
 pygame.quit()
