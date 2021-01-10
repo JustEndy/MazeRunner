@@ -97,7 +97,7 @@ while running:
     pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                player.y + player.rect.height // 2), line_pos)
     screen.blit(update_fps(), (850, 0))
-    screen.blit(font.render('SCORE: ' + str(score), True, pygame.Color("Red")), (850, 50))
+    screen.blit(font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
     pygame.display.flip()
     clock.tick(FPS)
 pygame.quit()

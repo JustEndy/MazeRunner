@@ -28,6 +28,6 @@ pygame.time.set_timer(PATHTIME, 100)
 
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
-    fps_text = font.render(fps, True, pygame.Color("Red"))
+    fps_text = font.render(fps, True, pygame.Color("White"))
     return fps_text
 
