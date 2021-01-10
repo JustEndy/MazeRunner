@@ -21,13 +21,31 @@ doors_groups = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 ####################
-font = pygame.font.SysFont("Console", 20)
+debug_font = pygame.font.SysFont("Console", 20)
 PATHTIME = pygame.USEREVENT + 1
 pygame.time.set_timer(PATHTIME, 100)
+####################
+pause_font = pygame.font.SysFont("Bahnschrift SemiBold", 100, True)
 
 
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
-    fps_text = font.render(fps, True, pygame.Color("White"))
+    fps_text = debug_font.render(fps, True, pygame.Color("White"))
     return fps_text
+
+
+def pause_banners():
+    banner = pygame.Surface((WIDTH, HEIGHT))
+    final = pygame.Surface((WIDTH, HEIGHT))
+    final.fill((0, 0, 0))
+    final.set_colorkey((0, 0, 0))
+    banner.fill((0, 0, 0))
+    banner.set_alpha(125)
+    text = pause_font.render('PAUSED', False, (0, 0, 0))
+    pygame.draw.rect(final, (255, 255, 255), (HEIGHT // 2 - text.get_width() // 2 - 20,
+                                              HEIGHT // 2 - text.get_height() // 2 - 20,
+                                              text.get_width() + 40, text.get_height() + 40))
+    final.blit(text, (HEIGHT // 2 - text.get_width() // 2,
+                       HEIGHT // 2 - text.get_height() // 2))
+    return banner, final
 
