@@ -82,7 +82,7 @@ while running:
 
         # Меняем угол направления взгляда с помощью мышки
         mouse_pos = pygame.mouse.get_pos()
-        if mouse_pos != CENTER and 0 < mouse_pos[0] < WIDTH and 0 < mouse_pos[1] < HEIGHT:
+        if mouse_pos != CENTER and 0 < mouse_pos[0] < WIDTH - 1 and 0 < mouse_pos[1] < HEIGHT - 1:
             player.change_angle(mouse_pos)
             pygame.mouse.set_pos(CENTER)
 
@@ -121,6 +121,7 @@ while running:
                                                player.y + player.rect.height // 2), line_pos)
     screen.blit(update_fps(), (850, 0))
     screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
+    # Отрисовываем pause-баннер
     [screen.blit(banner, (0, 0)) for banner in pause_banners()]
     pygame.display.flip()
     clock.tick(FPS)

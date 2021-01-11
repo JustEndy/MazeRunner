@@ -2,7 +2,7 @@
 import pygame
 from maze import *
 
-SENSITIVITY = 0.02
+SENSITIVITY = 0.04
 FPS = 60
 SIZE = WIDTH, HEIGHT = 1280, 820
 CENTER = WIDTH // 2, HEIGHT // 2

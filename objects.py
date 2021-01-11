@@ -45,11 +45,11 @@ class Player(pygame.sprite.Sprite):
         x, y = pos
         super().__init__(all_groups, player_group)
         # Физический объект
-        self.image = pygame.Surface((10, 10))
+        self.image = pygame.Surface((5, 5))
         pygame.draw.rect(self.image, (155, 255, 155), (0, 0, 15, 15))
         self.rect = self.image.get_rect()
         # Система координат
-        self.angle = 0
+        self.angle = 90
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
         # Для логики победы/поражения
