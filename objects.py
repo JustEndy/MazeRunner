@@ -49,12 +49,19 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((size, size))
         pygame.draw.rect(self.image, (155, 255, 155), (0, 0, size, size))
         self.rect = self.image.get_rect()
+
+        self.stamina = FPS * 3
         # Система координат
         self.angle = 90
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
         # Для логики победы/поражения
         self.lost = False
+
+    def update_stamina(self):
+        stamina = 'STAMINA: ' + str(int(self.stamina / FPS / 3 * 100)) + "%"
+        text = debug_font.render(stamina, True, pygame.Color("White"))
+        return text
 
     def score(self):
         """Обновление переменной Score"""
@@ -75,10 +82,17 @@ class Player(pygame.sprite.Sprite):
         cos, sin = math.cos(math.radians(self.angle)), \
                    math.sin(math.radians(self.angle))
 
+        if not any(btns):
+            self.stamina += 0.5 if self.stamina + 1 <= FPS * 3 + 1 else 0
+        else:
+            if pygame.key.get_mods() != 4097:
+                self.stamina += 0.25 if self.stamina + 1 <= FPS * 3 + 1 else 0
+
         if btns[pygame.K_UP] or btns[pygame.K_w]:
-            if pygame.key.get_mods() == 4097:
+            if pygame.key.get_mods() == 4097 and self.stamina > 0:
                 self.y += cos * SPEED
                 self.x += sin * SPEED
+                self.stamina -= 1
             else:
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6

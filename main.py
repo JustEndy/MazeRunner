@@ -94,12 +94,13 @@ while running:
         all_groups.update()
         all_groups.draw(screen)
         player_group.draw(screen)
-        line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2, \
-                   math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2
+        line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2 + 1, \
+                   math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2 + 1
         pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                    player.y + player.rect.height // 2), line_pos)
         screen.blit(update_fps(), (850, 0))
         screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
+        screen.blit(player.update_stamina(), (850, 100))
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -115,12 +116,16 @@ while running:
                 run_game = True
     all_groups.draw(screen)
     player_group.draw(screen)
-    line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2,\
-               math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2
-    pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
-                                               player.y + player.rect.height // 2), line_pos)
+    line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2 + 1,\
+               math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2 + 1
+    pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2 + 1,
+                                               player.y + player.rect.height // 2 + 1), line_pos)
+
+    ### TEXT DEBUG ###
     screen.blit(update_fps(), (850, 0))
     screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
+    screen.blit(player.update_stamina(), (850, 100))
+
     # Отрисовываем pause-баннер
     [screen.blit(banner, (0, 0)) for banner in pause_banners()]
     pygame.display.flip()
