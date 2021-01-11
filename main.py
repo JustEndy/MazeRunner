@@ -46,12 +46,15 @@ def generate_entity():
 
 def restart():
     """Перезапуск всей сессии"""
+    global SCORE
     # Очистка всех спрайтовых групп
     all_groups.empty()
     walls_groups.empty()
     doors_groups.empty()
     player_group.empty()
     enemy_group.empty()
+    # Очищаем SCORE
+    SCORE = 0
     # Создаём сущности
     return generate_entity()
 
@@ -97,7 +100,7 @@ while running:
 
         # Обновляем счёт
         if player.rect.x + player.rect.w > HEIGHT or player.lost:
-            player, monster = restart()
+            player, monster, exit_door = restart()
 
         all_groups.update()
         all_groups.draw(screen)
@@ -122,6 +125,7 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 run_game = True
+                pygame.mouse.set_pos(CENTER)
     all_groups.draw(screen)
     player_group.draw(screen)
     line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2 + 1,\
