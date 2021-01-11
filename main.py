@@ -1,5 +1,6 @@
 """Основной модуль, корень проекта с логикой"""
 import random
+random.seed(2)
 from objects import *
 from options import *
 
@@ -10,6 +11,16 @@ def generate_level(world_map):
         """Проверка, есть ли вокруг данной точки ещё свободные пути"""
         return any([world_map[x - 1][y], world_map[x + 1][y],
                     world_map[x][y - 1], world_map[x][y + 1]])
+
+    def double_maybe(x, y):
+        """Проверка, есть ли вокруг данной точки ещё свободные пути + диагонали"""
+        ans = [(x - 1, y - 1), (x - 1, y), (x - 1, y + 1),
+               (x, y - 1), (x, y), (x, y + 1),
+               (x + 1, y - 1), (x + 1, y), (x + 1, y + 1)]
+        isit = [world_map[x - 1][y - 1], world_map[x - 1][y], world_map[x - 1][y + 1],
+                world_map[x][y - 1], world_map[x][y], world_map[x][y + 1],
+                world_map[x + 1][y - 1], world_map[x + 1][y], world_map[x + 1][y + 1]]
+        return list(filter(lambda x: isit[ans.index(x)], ans))
 
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
@@ -31,17 +42,26 @@ def generate_level(world_map):
     start.kill(), end.kill()
     world_map[x_s // CELL_W, y_s // CELL_W], world_map[x_e // CELL_W, y_e // CELL_W] = 1, 1
     Wall(-1, y_s // CELL_W)
-    return (x_s, y_s), (x_e, y_e), world_map
+
+    sgs = []
+    sgs.append(SG(choice(double_maybe(2, 2))))
+    sgs.append(SG(choice(double_maybe((MAZE_S * 2 + 1) - 3, (MAZE_S * 2 + 1) - 3))))
+    sgs.append(SG(choice(double_maybe(2, (MAZE_S * 2 + 1) - 3))))
+    sgs.append(SG(choice(double_maybe((MAZE_S * 2 + 1) - 3, 2))))
+    sgs.append(SG(choice(double_maybe(MAZE_S + 1, MAZE_S + 1))))
+    sg_handler = SGHandler(sgs)
+    return (x_s, y_s), (x_e, y_e), world_map, sg_handler
 
 
 def generate_entity():
     """Создание основных объектов"""
-    pos_p, pos_e, wmap = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
+    pos_p, pos_e, wmap, sg_handler = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     player = Player(pos_p)
     monster = Enemy(pos_e, player, wmap)
     Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
     exit_door = Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
-    return player, monster, exit_door
+
+    return player, monster, exit_door, sg_handler
 
 
 def restart():
@@ -60,7 +80,7 @@ def restart():
 
 
 # Окно Pygame
-player, monster, exit_door = generate_entity()
+player, monster, exit_door, sg_handler = generate_entity()
 
 running = True
 run_game = True
@@ -89,8 +109,14 @@ while running:
                     SCORE -= 1 if SCORE - 1 >= 0 else 0
                     monster.change_speed(SCORE)
 
+        # Открываем дверь по достижению 5 очков
         if SCORE == 5:
             exit_door.is_open = True
+
+        # Добавляем очко
+        if sg_handler.changed:
+            SCORE += 1 if SCORE + 1 <= 5 else 0
+            sg_handler.update_sg()
 
         # Меняем угол направления взгляда с помощью мышки
         mouse_pos = pygame.mouse.get_pos()
@@ -98,9 +124,9 @@ while running:
             player.change_angle(mouse_pos)
             pygame.mouse.set_pos(CENTER)
 
-        # Обновляем счёт
+        # Рестарт уровня
         if player.rect.x + player.rect.w > HEIGHT or player.lost:
-            player, monster, exit_door = restart()
+            player, monster, exit_door, sg_handler = restart()
 
         all_groups.update()
         all_groups.draw(screen)
@@ -112,6 +138,9 @@ while running:
         screen.blit(update_fps(), (850, 0))
         screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (850, 50))
         screen.blit(player.update_stamina(), (850, 100))
+
+        if player.is_interacting:
+            screen.blit(player.interact_text(), (0, 0))
         pygame.display.flip()
         clock.tick(FPS)
 

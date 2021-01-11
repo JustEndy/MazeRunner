@@ -2,7 +2,14 @@
 import pygame
 from maze import *
 
+# CONTROL SETTINGS
 SENSITIVITY = 0.04
+BTN_F = pygame.K_w
+BTN_L = pygame.K_a
+BTN_R = pygame.K_d
+BTN_B = pygame.K_s
+BTN_INTERACT = pygame.K_e
+###################
 # Должно быть чётным, иначе генератор падает
 MAZE_S = 14
 FPS = 60
@@ -22,12 +29,15 @@ walls_groups = pygame.sprite.Group()
 doors_groups = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
+sg_group = pygame.sprite.Group()
 ####################
-debug_font = pygame.font.SysFont("Console", 20)
 PATHTIME = pygame.USEREVENT + 1
 pygame.time.set_timer(PATHTIME, 100)
 ####################
 pause_font = pygame.font.SysFont("Bahnschrift SemiBold", 100, True)
+debug_font = pygame.font.SysFont("Console", 20)
+interact_font = pygame.font.SysFont("Bahnschrift SemiBold", 50, True)
+
 
 
 def update_fps():

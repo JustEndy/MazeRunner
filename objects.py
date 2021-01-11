@@ -2,6 +2,7 @@
 from options import *
 from collections import deque
 import math
+from random import choice
 
 
 class Door(pygame.sprite.Sprite):
@@ -43,7 +44,61 @@ class Wall(pygame.sprite.Sprite):
         # Это просто стена, что вы от неё ожидаете :)
 
 
+class SG(pygame.sprite.Sprite):
+    """Объект мини-игры"""
+    def __init__(self, pos):
+        x, y = pos
+        size = math.ceil(CELL_W * 0.25)
+        super().__init__()
+        # Физ объект
+        self.image = pygame.Surface((size, size))
+        pygame.draw.rect(self.image, (255, 255, 153), (0, 0, size, size))
+        self.rect = self.image.get_rect()
+        # Координаты
+        self.rect.x = x * CELL_W + randint(0, CELL_W - self.rect.width)
+        self.rect.y = y * CELL_W + randint(0, CELL_W - self.rect.height)
+        # Логика
+        self.is_visible = False
+
+    def add_handler(self, obj):
+        """Добавление ссылки на обработчик"""
+        self.handler = obj
+
+    def activated(self):
+        """Вызывается при активации игроком"""
+        print('yep')
+        self.handler.changed = True
+        self.kill()
+
+    def update(self, activated=False):
+        """Перенаправляем сигнал"""
+        if activated:
+            self.activated()
+
+
+class SGHandler:
+    """Объект для обработки всех мини-игр"""
+    def __init__(self, sgs):
+        self.changed = False
+        self.list = sgs
+        self.current_sg = choice(self.list)
+        self.current_sg.add(all_groups, sg_group)
+        self.current_sg.is_visible = True
+        for sg in self.list:
+            sg.add_handler(self)
+
+    def update_sg(self):
+        """Меняем нынешнюю активную игру"""
+        self.changed = False
+        self.list.remove(self.current_sg)
+        if self.list:
+            self.current_sg = choice(self.list)
+            self.current_sg.is_visible = True
+            self.current_sg.add(all_groups, sg_group)
+
+
 class Player(pygame.sprite.Sprite):
+    """Объект игрока"""
     def __init__(self, pos):
         x, y = pos
         size = math.ceil(CELL_W * 0.25)
@@ -58,10 +113,12 @@ class Player(pygame.sprite.Sprite):
         self.angle = 90
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
-        # Для логики победы/поражения
+        # Логика
         self.lost = False
+        self.is_interacting = False
 
     def update_stamina(self):
+        """Вывод текста с уровнем выносливости в %"""
         stamina = 'STAMINA: ' + str(int(self.stamina / FPS / 3 * 100)) + "%"
         text = debug_font.render(stamina, True, pygame.Color("White"))
         return text
@@ -85,7 +142,7 @@ class Player(pygame.sprite.Sprite):
             if pygame.key.get_mods() != 4097:
                 self.stamina += 0.25 if self.stamina + 1 <= FPS * 3 + 1 else 0
 
-        if btns[pygame.K_UP] or btns[pygame.K_w]:
+        if btns[pygame.K_UP] or btns[BTN_F]:
             if pygame.key.get_mods() == 4097 and self.stamina > 0:
                 self.y += cos * SPEED
                 self.x += sin * SPEED
@@ -93,13 +150,13 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6
-        if btns[pygame.K_DOWN] or btns[pygame.K_s]:
+        if btns[pygame.K_DOWN] or btns[BTN_B]:
             self.y -= cos * SPEED * 0.5
             self.x -= sin * SPEED * 0.5
-        if btns[pygame.K_LEFT] or btns[pygame.K_a]:
+        if btns[pygame.K_LEFT] or btns[BTN_L]:
             self.y -= sin * SPEED * 0.6
             self.x += cos * SPEED * 0.6
-        if btns[pygame.K_RIGHT] or btns[pygame.K_d]:
+        if btns[pygame.K_RIGHT] or btns[BTN_R]:
             self.y += sin * SPEED * 0.6
             self.x -= cos * SPEED * 0.6
         self.rect.y = math.ceil(self.y)
@@ -110,6 +167,27 @@ class Player(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.x = x
             self.x = x
+        # Взаимодействие
+        sg = pygame.sprite.spritecollide(self, sg_group, False)
+        if sg:
+            self.is_interacting = True
+            if btns[BTN_INTERACT]:
+                sg[0].update(activated=True)
+        else:
+            self.is_interacting = False
+
+    def interact_text(self):
+        final = pygame.Surface((WIDTH, HEIGHT))
+        final.fill((0, 0, 0))
+        final.set_colorkey((0, 0, 0))
+        text = interact_font.render(f'Press {BTN_INTERACT} to use.', False, (1, 1, 1))
+        delta = text.get_height() * 2
+        pygame.draw.rect(final, (255, 255, 255), (HEIGHT // 2 - text.get_width() // 2 - 5,
+                                                  HEIGHT // 2 - text.get_height() // 2 - 5 + delta,
+                                                  text.get_width() + 10, text.get_height() + 10))
+        final.blit(text, (HEIGHT // 2 - text.get_width() // 2,
+                          HEIGHT // 2 - text.get_height() // 2 + delta))
+        return final
 
 
 class Enemy(pygame.sprite.Sprite):
