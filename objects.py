@@ -8,8 +8,8 @@ class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, is_open=False, start=False):
         super().__init__(all_groups, doors_groups)
         # Физический объект
-        self.image = pygame.Surface((20, 20))
-        pygame.draw.rect(self.image, (0, 0, 0), (0, 0, 20, 20))
+        self.image = pygame.Surface((CELL_W, CELL_W))
+        pygame.draw.rect(self.image, (0, 0, 0), (0, 0, CELL_W, CELL_W))
         self.rect = self.image.get_rect()
         # Система координат
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
@@ -33,8 +33,8 @@ class Door(pygame.sprite.Sprite):
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(all_groups, walls_groups)
-        self.image = pygame.Surface((20, 20))
-        pygame.draw.rect(self.image, (150, 150, 150), (0, 0, 20, 20))
+        self.image = pygame.Surface((CELL_W, CELL_W))
+        pygame.draw.rect(self.image, (150, 150, 150), (0, 0, CELL_W, CELL_W))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
         # Это просто стена, что вы от неё ожидаете :)
@@ -43,10 +43,11 @@ class Wall(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos):
         x, y = pos
+        size = math.ceil(CELL_W * 0.25)
         super().__init__(all_groups, player_group)
         # Физический объект
-        self.image = pygame.Surface((5, 5))
-        pygame.draw.rect(self.image, (155, 255, 155), (0, 0, 15, 15))
+        self.image = pygame.Surface((size, size))
+        pygame.draw.rect(self.image, (155, 255, 155), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Система координат
         self.angle = 90
@@ -105,8 +106,9 @@ class Enemy(pygame.sprite.Sprite):
         x, y = pos
         super().__init__(all_groups, enemy_group)
         # Физический объект
-        self.image = pygame.Surface((15, 15))
-        pygame.draw.rect(self.image, (225, 175, 175), (0, 0, 15, 15))
+        size = math.ceil(CELL_W * 0.75)
+        self.image = pygame.Surface((size, size))
+        pygame.draw.rect(self.image, (225, 175, 175), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Всё, что связано с передвижением и системой координат
         self.x, self.y = x + 2, y + 2

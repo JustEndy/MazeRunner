@@ -3,14 +3,15 @@ import pygame
 from maze import *
 
 SENSITIVITY = 0.04
+# Должно быть чётным, иначе генератор падает
+MAZE_S = 14
 FPS = 60
 SIZE = WIDTH, HEIGHT = 1280, 820
 CENTER = WIDTH // 2, HEIGHT // 2
-CELL_W = 20
+CELL_W = HEIGHT // (MAZE_S * 2 + 1)
 SPEED = 2
-MAZE_S = 20
 pygame.init()
-pygame.display.set_caption('Лабиринт')
+pygame.display.set_caption('Maze Runner | Work in Progress')
 screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
 maze = Maze(MAZE_S, MAZE_S).get_maze()
