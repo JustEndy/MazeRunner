@@ -24,10 +24,13 @@ class Door(pygame.sprite.Sprite):
             wall[0].kill()
         elif not wall and not self.is_open:
             Wall(self.rect.x // CELL_W, self.rect.y // CELL_W)
-            self.kill()
         if self.start:
             if pygame.sprite.spritecollideany(self, player_group) is None:
                 self.is_open = False
+        elif SCORE == 1:
+            self.is_open = True
+        else:
+            self.is_open = False
 
 
 class Wall(pygame.sprite.Sprite):
@@ -62,12 +65,6 @@ class Player(pygame.sprite.Sprite):
         stamina = 'STAMINA: ' + str(int(self.stamina / FPS / 3 * 100)) + "%"
         text = debug_font.render(stamina, True, pygame.Color("White"))
         return text
-
-    def score(self):
-        """Обновление переменной Score"""
-        if self.lost:
-            return -1
-        return 1
 
     def change_angle(self, mouse_pos):
         """Меняем угол направления взгляда"""
@@ -125,8 +122,8 @@ class Enemy(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (225, 175, 175), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Всё, что связано с передвижением и системой координат
-        self.x, self.y = x + 2, y + 2
-        self.rect.x, self.rect.y = x + 2, y + 2
+        self.x, self.y = x + 2 - CELL_W, y + 2
+        self.rect.x, self.rect.y = x + 2 - CELL_W, y + 2
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
         self.path = []
@@ -139,9 +136,13 @@ class Enemy(pygame.sprite.Sprite):
         self.speed_coef = coef
         self.speed = SPEED * self.speed_coef
 
-    def change_speed(self):
+    def change_speed(self, value):
         """Изменение скорости монстра в зависимости от переменной Score"""
-        pass
+        self.speed_coef = 0.4 + value * 0.1
+        if self.aggressive:
+            self.speed = SPEED * self.speed_coef * 2
+        else:
+            self.speed = SPEED * self.speed_coef
 
     def change_behave(self):
         """Изменение поведения Агрессивное/Пассивное, влияет на цель монстра"""
@@ -171,7 +172,7 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         """Передвижение"""
-        if (self.cell_x, self.cell_y) == (self.player.rect.x // CELL_W, self.player.rect.y // CELL_W):
+        if pygame.sprite.spritecollideany(self, player_group):
             self.player.lost = True
             return
         if len(self.path) <= 1:

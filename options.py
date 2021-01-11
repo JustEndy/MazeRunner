@@ -10,6 +10,7 @@ SIZE = WIDTH, HEIGHT = 1280, 820
 CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = HEIGHT // (MAZE_S * 2 + 1)
 SPEED = 2
+SCORE = 0
 pygame.init()
 pygame.display.set_caption('Maze Runner | Work in Progress')
 screen = pygame.display.set_mode(SIZE)

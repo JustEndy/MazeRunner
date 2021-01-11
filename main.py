@@ -2,7 +2,6 @@
 import random
 from objects import *
 from options import *
-score = 0
 
 
 def generate_level(world_map):
@@ -39,9 +38,10 @@ def generate_entity():
     """Создание основных объектов"""
     pos_p, pos_e, wmap = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     player = Player(pos_p)
-    monster = Enemy(pos_e, player, wmap) if not score else Enemy(pos_e, player, wmap, 0.4 + score * 0.1)
+    monster = Enemy(pos_e, player, wmap)
     Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
-    return player, monster
+    exit_door = Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
+    return player, monster, exit_door
 
 
 def restart():
@@ -57,7 +57,7 @@ def restart():
 
 
 # Окно Pygame
-player, monster = generate_entity()
+player, monster, exit_door = generate_entity()
 
 running = True
 run_game = True
@@ -79,6 +79,15 @@ while running:
                     print(monster.speed, monster.speed_coef)
                 elif event.key == pygame.K_ESCAPE:
                     run_game = False
+                elif event.key == pygame.K_KP_PLUS:
+                    SCORE += 1 if SCORE + 1 <= 5 else 0
+                    monster.change_speed(SCORE)
+                elif event.key == pygame.K_KP_MINUS:
+                    SCORE -= 1 if SCORE - 1 >= 0 else 0
+                    monster.change_speed(SCORE)
+
+        if SCORE == 5:
+            exit_door.is_open = True
 
         # Меняем угол направления взгляда с помощью мышки
         mouse_pos = pygame.mouse.get_pos()
@@ -88,7 +97,6 @@ while running:
 
         # Обновляем счёт
         if player.rect.x + player.rect.w > HEIGHT or player.lost:
-            score += player.score()
             player, monster = restart()
 
         all_groups.update()
@@ -99,7 +107,7 @@ while running:
         pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                    player.y + player.rect.height // 2), line_pos)
         screen.blit(update_fps(), (850, 0))
-        screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
+        screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (850, 50))
         screen.blit(player.update_stamina(), (850, 100))
         pygame.display.flip()
         clock.tick(FPS)
@@ -123,7 +131,7 @@ while running:
 
     ### TEXT DEBUG ###
     screen.blit(update_fps(), (850, 0))
-    screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (850, 50))
+    screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (850, 50))
     screen.blit(player.update_stamina(), (850, 100))
 
     # Отрисовываем pause-баннер
