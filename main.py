@@ -61,6 +61,7 @@ def generate_entity():
     monster = Enemy(pos_e, player, wmap)
     Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
     exit_door = Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
+    sg_handler.set_monster(monster)
 
     return player, monster, exit_door, sg_handler
 

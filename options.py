@@ -11,13 +11,13 @@ BTN_B = pygame.K_s
 BTN_INTERACT = pygame.K_e
 SIZE = WIDTH, HEIGHT = 1280, 720
 SEED = randint(0, 999999)
-SEED = 871745
+# SEED = 871745
 ###################
 # Должно быть чётным, иначе генератор падает
 MAZE_S = 14
 FPS = 60
 CENTER = WIDTH // 2, HEIGHT // 2
-CELL_W = HEIGHT // (MAZE_S * 2 + 1)
+CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
 SPEED = 2
 SCORE = 0
 pygame.init()

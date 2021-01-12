@@ -67,6 +67,7 @@ class SG(pygame.sprite.Sprite):
     def activated(self):
         """Вызывается при активации игроком"""
         print('yep')
+        self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
         self.handler.changed = True
         self.kill()
 
@@ -86,6 +87,9 @@ class SGHandler:
         self.current_sg.is_visible = True
         for sg in self.list:
             sg.add_handler(self)
+
+    def set_monster(self, m):
+        self.monster = m
 
     def update_sg(self):
         """Меняем нынешнюю активную игру"""
@@ -231,6 +235,12 @@ class Enemy(pygame.sprite.Sprite):
             x, y = randint(1, len(self.w_map) - 1), randint(1, len(self.w_map[0]) - 1)
             if self.w_map[x][y]:
                 return x, y
+
+    def set_custom_goal(self, pos):
+        """Ручная установка цели монстра"""
+        goal = pos[0] // CELL_W, pos[1] // CELL_W
+        self.path = self.get_path(self.bfs(goal))
+        self.speed = SPEED * self.speed_coef * 1.75
 
     def update_goal(self):
         """Обновляем цель монстра Игрок/Точка в лабиринте"""
