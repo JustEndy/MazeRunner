@@ -1,8 +1,9 @@
 """Основной модуль, корень проекта с логикой"""
 import random
-random.seed(2)
 from objects import *
 from options import *
+random.seed(SEED)
+print(SEED)
 
 
 def generate_level(world_map):

@@ -48,7 +48,7 @@ class SG(pygame.sprite.Sprite):
     """Объект мини-игры"""
     def __init__(self, pos):
         x, y = pos
-        size = math.ceil(CELL_W * 0.25)
+        size = math.ceil(CELL_W * 0.4)
         super().__init__()
         # Физ объект
         self.image = pygame.Surface((size, size))
@@ -208,8 +208,6 @@ class Enemy(pygame.sprite.Sprite):
         self.w_map = w_map
         # Сосотояние монстра, Агрессия/Пассивность
         self.aggressive = False
-        # Есть ли цель у монстра (Логика)
-        self.goal = False
         # Скорость
         self.speed_coef = coef
         self.speed = SPEED * self.speed_coef
@@ -237,7 +235,6 @@ class Enemy(pygame.sprite.Sprite):
     def update_goal(self):
         """Обновляем цель монстра Игрок/Точка в лабиринте"""
         if self.aggressive:
-            self.goal = True
             goal = self.player.rect.x // CELL_W, self.player.rect.y // CELL_W
             self.path = self.get_path(self.bfs(goal))
             self.speed = SPEED * self.speed_coef * 2
@@ -254,18 +251,36 @@ class Enemy(pygame.sprite.Sprite):
             self.player.lost = True
             return
         if len(self.path) <= 1:
-            self.goal = False
+            x, y = self.rect.x, self.rect.y
+            if self.player.x > x:
+                self.x += self.speed
+            elif self.player.x < x:
+                self.x -= self.speed
+            self.rect.x = int(self.x)
+            if pygame.sprite.spritecollideany(self, walls_groups):
+                self.rect.x = x
+                self.x = x
+            if self.player.y > y:
+                self.y += self.speed
+            elif self.player.y < y:
+                self.y -= self.speed
+            self.rect.y = int(self.y)
+            if pygame.sprite.spritecollideany(self, walls_groups):
+                self.rect.y = y
+                self.y = y
             return
         x, y = self.rect.x, self.rect.y
         x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
         x2, y2 = self.path[1]
+
         if (self.cell_x, self.cell_y) == (x2, y2):
             self.path.pop(0)
             return
+
         x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
         if x1 < x2:
             self.x += self.speed
-        elif x1 > x2:
+        elif x1 >= x2:
             self.x -= self.speed
         self.rect.x = int(self.x)
         if pygame.sprite.spritecollideany(self, walls_groups):
