@@ -1,6 +1,8 @@
 """Модуль с переменными и настройками"""
 import pygame
 from maze import *
+from os import path as ospath
+from sys import exit as sysexit
 
 # GAME SETTINGS
 SENSITIVITY = 0.04
@@ -11,7 +13,7 @@ BTN_B = pygame.K_s
 BTN_INTERACT = pygame.K_e
 SIZE = WIDTH, HEIGHT = 1280, 720
 SEED = randint(0, 999999)
-# SEED = 871745
+SEED = 2
 ###################
 # Должно быть чётным, иначе генератор падает
 MAZE_S = 14
@@ -41,7 +43,6 @@ debug_font = pygame.font.SysFont("Console", 20)
 interact_font = pygame.font.SysFont("Bahnschrift SemiBold", 50, True)
 
 
-
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
     fps_text = debug_font.render(fps, True, pygame.Color("White"))
@@ -62,4 +63,21 @@ def pause_banners():
     final.blit(text, (HEIGHT // 2 - text.get_width() // 2,
                        HEIGHT // 2 - text.get_height() // 2))
     return banner, final
+
+
+def load_image(name, colorkey=None):
+    fullname = ospath.join('data', name)
+    # если файл не существует, то выходим
+    if not ospath.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sysexit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
 
