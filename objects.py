@@ -184,7 +184,7 @@ class Player(pygame.sprite.Sprite):
         final = pygame.Surface((WIDTH, HEIGHT))
         final.fill((0, 0, 0))
         final.set_colorkey((0, 0, 0))
-        text = interact_font.render(f'Press {BTN_INTERACT} to use.', False, (1, 1, 1))
+        text = btn_font.render(f'Press {BTN_INTERACT} to use.', False, (1, 1, 1))
         delta = text.get_height() * 2
         pygame.draw.rect(final, (255, 255, 255), (HEIGHT // 2 - text.get_width() // 2 - 5,
                                                   HEIGHT // 2 - text.get_height() // 2 - 5 + delta,

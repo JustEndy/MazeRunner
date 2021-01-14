@@ -75,6 +75,7 @@ def restart():
     doors_groups.empty()
     player_group.empty()
     enemy_group.empty()
+    sg_group.empty()
     # Очищаем SCORE
     SCORE = 0
     # Создаём сущности
@@ -82,13 +83,14 @@ def restart():
 
 
 # Окно Pygame
-player, monster, exit_door, sg_handler = generate_entity()
 
 menu = True
-running = False
+run_pause = False
 run_game = True
 while menu:
-    while running:
+    if run_pause:
+        player, monster, exit_door, sg_handler = restart()
+    while run_pause:
         if run_game:
             pygame.mouse.set_visible(False)
         while run_game:
@@ -96,7 +98,7 @@ while menu:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     menu = False
-                    running = False
+                    run_pause = False
                     run_game = False
                 if event.type == PATHTIME:
                     monster.update_goal()
@@ -143,9 +145,9 @@ while menu:
                        math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2 + 1
             pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                        player.y + player.rect.height // 2), line_pos)
-            screen.blit(update_fps(), (850, 0))
-            screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (850, 50))
-            screen.blit(player.update_stamina(), (850, 100))
+            screen.blit(update_fps(), (HEIGHT + 10, 0))
+            screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (HEIGHT + 10, 50))
+            screen.blit(player.update_stamina(), (HEIGHT + 10, 100))
 
             if player.is_interacting:
                 screen.blit(player.interact_text(), (0, 0))
@@ -156,14 +158,23 @@ while menu:
 
         pygame.mouse.set_visible(True)
         screen.fill((0, 0, 0))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 menu = False
-                running = False
+                run_pause = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     run_game = True
                     pygame.mouse.set_pos(CENTER)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if RECT_PLAY.collidepoint(event.pos):
+                    run_game = True
+                    pygame.mouse.set_pos(CENTER)
+                elif RECT_EXIT.collidepoint(event.pos):
+                    run_pause = False
+                    restart()
+
         all_groups.draw(screen)
         player_group.draw(screen)
         line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2 + 1,\
@@ -178,20 +189,28 @@ while menu:
 
         # Отрисовываем pause-баннер
         [screen.blit(banner, (0, 0)) for banner in pause_banners()]
+        # отрисовка менюшки
+        work_with_menu('game')
         pygame.display.flip()
         clock.tick(FPS)
 
     ########## GAME MENU ##########
     screen.fill((0, 0, 0))
 
-    # Удалить потом, менюшка
-    pygame.draw.rect(screen, (155, 155, 155), (round(WIDTH / 3 * 2), 0,
-                                               WIDTH - round(WIDTH / 3 * 2), HEIGHT))
+    # Картинка с лого
+    screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
+                                                 HEIGHT)), (0, 0))
+    work_with_menu('menu')
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             menu = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            m_x, m_y = event.pos
+            if RECT_PLAY.collidepoint(event.pos):
+                menu, run_pause, run_game = choose_session()
+            elif RECT_EXIT.collidepoint(event.pos):
+                menu = False
+
     pygame.display.flip()
     clock.tick(FPS)
 pygame.quit()
