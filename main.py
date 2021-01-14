@@ -102,6 +102,9 @@ while menu:
                     run_game = False
                 if event.type == PATHTIME:
                     monster.update_goal()
+                elif event.type == HEARTBEAT:
+                    player.heartbeat((monster.rect.x + monster.rect.w // 2,
+                                      monster.rect.y + monster.rect.h // 2))
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         monster.change_behave()
@@ -145,9 +148,10 @@ while menu:
                        math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2 + 1
             pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                        player.y + player.rect.height // 2), line_pos)
-            screen.blit(update_fps(), (HEIGHT + 10, 0))
-            screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (HEIGHT + 10, 50))
-            screen.blit(player.update_stamina(), (HEIGHT + 10, 100))
+
+            # Отрисовка инвенторя
+            player.draw_inventory()
+            update_fps()
 
             if player.is_interacting:
                 screen.blit(player.interact_text(), (0, 0))
@@ -169,11 +173,14 @@ while menu:
                     pygame.mouse.set_pos(CENTER)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
+                    BTN_SOUND.play()
                     run_game = True
                     pygame.mouse.set_pos(CENTER)
+                elif RECT_SETTINGS.collidepoint(event.pos):
+                    BTN_SOUND.play()
                 elif RECT_EXIT.collidepoint(event.pos):
+                    BTN_SOUND.play()
                     run_pause = False
-                    restart()
 
         all_groups.draw(screen)
         player_group.draw(screen)
@@ -183,9 +190,8 @@ while menu:
                                                    player.y + player.rect.height // 2 + 1), line_pos)
 
         ### TEXT DEBUG ###
-        screen.blit(update_fps(), (850, 0))
-        screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (850, 50))
-        screen.blit(player.update_stamina(), (850, 100))
+        player.draw_inventory()
+        update_fps()
 
         # Отрисовываем pause-баннер
         [screen.blit(banner, (0, 0)) for banner in pause_banners()]
@@ -198,8 +204,7 @@ while menu:
     screen.fill((0, 0, 0))
 
     # Картинка с лого
-    screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
-                                                 HEIGHT)), (0, 0))
+    screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w, RECT_GAME_WINDOW.h)), (0, 0))
     work_with_menu('menu')
 
     for event in pygame.event.get():
@@ -207,9 +212,13 @@ while menu:
             menu = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if RECT_PLAY.collidepoint(event.pos):
+                BTN_SOUND.play()
                 menu, run_pause, run_game = choose_session()
+            elif RECT_SETTINGS.collidepoint(event.pos):
+                BTN_SOUND.play()
             elif RECT_EXIT.collidepoint(event.pos):
                 menu = False
+                BTN_SOUND.play()
 
     pygame.display.flip()
     clock.tick(FPS)

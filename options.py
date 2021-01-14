@@ -5,14 +5,38 @@ from os import path as ospath
 from sys import exit as sysexit
 
 # GAME SETTINGS
-SENSITIVITY = 0.04
-BTN_F = pygame.K_w
-BTN_L = pygame.K_a
-BTN_R = pygame.K_d
-BTN_B = pygame.K_s
-BTN_INTERACT = pygame.K_e
-SIZE = WIDTH, HEIGHT = 1280, 720
-SEED = randint(0, 999999)
+if ospath.isfile('settings.txt'):
+    with open("settings.txt", 'r') as f:
+        file = f.readlines()
+        SENSITIVITY = float(file[0].strip('\n').split('=')[1])
+        BTN_F = eval(f"pygame.K_{file[1][:-1].split('=')[1]}")
+        BTN_L = eval(f"pygame.K_{file[2][:-1].split('=')[1]}")
+        BTN_R = eval(f"pygame.K_{file[3][:-1].split('=')[1]}")
+        BTN_B = eval(f"pygame.K_{file[4][:-1].split('=')[1]}")
+        BTN_INTERACT = eval(f"pygame.K_{file[5][:-1].split('=')[1]}")
+        WIDTH = int(file[6].strip('\n').split('=')[1])
+        HEIGHT = int(file[7].strip('\n').split('=')[1])
+        seed = file[8].strip('\n').split('=')[1]
+        SEED = randint(0, 999999) if seed == 'random' else seed
+else:
+    SENSITIVITY = 0.04
+    BTN_F = pygame.K_w
+    BTN_L = pygame.K_a
+    BTN_R = pygame.K_d
+    BTN_B = pygame.K_s
+    BTN_INTERACT = pygame.K_e
+    WIDTH, HEIGHT = 1280, 720
+    SEED = randint(0, 999999)
+    with open("settings.txt", 'w') as f:
+        f.write('SENSITIVITY=0.04\n')
+        f.write('BTN_F=w\n')
+        f.write('BTN_L=a\n')
+        f.write('BTN_R=d\n')
+        f.write('BTN_B=s\n')
+        f.write('BTN_INTERACT=e\n')
+        f.write('WIDTH=1280\n')
+        f.write('HEIGHT=720\n')
+        f.write('SEED=random')
 ###################
 # Должно быть чётным, иначе генератор падает
 MAZE_S = 14
@@ -23,7 +47,7 @@ SPEED = HEIGHT / 360
 SCORE = 0
 pygame.init()
 pygame.display.set_caption('Maze Runner | Work in Progress')
-screen = pygame.display.set_mode(SIZE)
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 maze = Maze(MAZE_S, MAZE_S).get_maze()
 ####################
@@ -34,6 +58,7 @@ width_x, width_y = round(width_x - width_x * 0.3), round(HEIGHT / 3 * 0.3)
 RECT_PLAY = pygame.Rect(menu_x, menu_y, width_x, width_y)
 RECT_SETTINGS = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3 * 0.5), width_x, width_y)
 RECT_EXIT = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3), width_x, width_y)
+RECT_GAME_WINDOW = pygame.Rect(0, 0, round(WIDTH / 3 * 2), HEIGHT)
 ####################
 all_groups = pygame.sprite.Group()
 walls_groups = pygame.sprite.Group()
@@ -43,7 +68,9 @@ enemy_group = pygame.sprite.Group()
 sg_group = pygame.sprite.Group()
 ####################
 PATHTIME = pygame.USEREVENT + 1
+HEARTBEAT = pygame.USEREVENT + 0
 pygame.time.set_timer(PATHTIME, 100)
+pygame.time.set_timer(HEARTBEAT, 100)
 ####################
 pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), True)
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
@@ -51,7 +78,7 @@ debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
 
 
 def load_image(name, colorkey=None):
-    fullname = ospath.join('data', name)
+    fullname = ospath.join('data', 'sprites', name)
     # если файл не существует, то выходим
     if not ospath.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -67,6 +94,19 @@ def load_image(name, colorkey=None):
     return image
 
 
+def load_sound(name):
+    fullname = ospath.join('data', 'sounds', name)
+    if not ospath.isfile(fullname):
+        print(f"Звук с изображением '{fullname}' не найден")
+        sysexit()
+    return pygame.mixer.Sound(fullname)
+
+
+BTN_SOUND = load_sound('btn_click.wav')
+HEART_S = load_sound('heart_s.wav')
+GAME_BG = load_image('game_bg.png')
+MENU_BG = load_image('menu_bg.png')
+BLANK = load_image('btn_blank.png')
 NOIMAGE = load_image('noimage.png')
 ###################################
 
@@ -74,7 +114,7 @@ NOIMAGE = load_image('noimage.png')
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
     fps_text = debug_font.render(fps, True, pygame.Color("White"))
-    return fps_text
+    screen.blit(fps_text, (WIDTH - fps_text.get_width(), 0))
 
 
 def pause_banners():
@@ -95,10 +135,10 @@ def pause_banners():
 
 def work_with_menu(from_where=''):
     """Отрисовка кнопок меню"""
-    pygame.draw.rect(screen, (155, 155, 155), RECT_MENU)
-    pygame.draw.rect(screen, (55, 155, 55), RECT_PLAY)
-    pygame.draw.rect(screen, (55, 55, 155), RECT_SETTINGS)
-    pygame.draw.rect(screen, (155, 55, 55), RECT_EXIT)
+    screen.blit(pygame.transform.scale(MENU_BG, (RECT_MENU.w, RECT_MENU.h)), (RECT_MENU.x, RECT_MENU.y))
+    screen.blit(pygame.transform.scale(BLANK, (RECT_PLAY.w, RECT_PLAY.h)), (RECT_PLAY.x, RECT_PLAY.y))
+    screen.blit(pygame.transform.scale(BLANK, (RECT_SETTINGS.w, RECT_SETTINGS.h)), (RECT_SETTINGS.x, RECT_SETTINGS.y))
+    screen.blit(pygame.transform.scale(BLANK, (RECT_EXIT.w, RECT_EXIT.h)), (RECT_EXIT.x, RECT_EXIT.y))
 
     text = ['', '', '']
     rects = [RECT_PLAY, RECT_SETTINGS, RECT_EXIT]
@@ -107,7 +147,7 @@ def work_with_menu(from_where=''):
     elif from_where == 'choose_session':
         text = ['FREE RUN', 'TUTORIAL', 'MENU']
     elif from_where == 'game':
-        text = ['RETURN', 'SETTINGS', 'MENU']
+        text = ['RETURN', 'SETTINGS', 'EXIT']
     for btn in range(3):
         btnB_1 = btn_font.render(text[btn], True, pygame.Color("Black"))
         btnW_1 = btn_font.render(text[btn], True, pygame.Color("White"))
@@ -141,9 +181,12 @@ def choose_session():
                 return False, False, False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
+                    BTN_SOUND.play()
                     return True, True, False
+                elif RECT_SETTINGS.collidepoint(event.pos):
+                    BTN_SOUND.play()
                 elif RECT_EXIT.collidepoint(event.pos):
+                    BTN_SOUND.play()
                     return True, False, False
 
         pygame.display.flip()
-

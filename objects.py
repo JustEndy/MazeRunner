@@ -66,7 +66,6 @@ class SG(pygame.sprite.Sprite):
 
     def activated(self):
         """Вызывается при активации игроком"""
-        print('yep')
         self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
         self.handler.changed = True
         self.kill()
@@ -120,6 +119,28 @@ class Player(pygame.sprite.Sprite):
         # Логика
         self.lost = False
         self.is_interacting = False
+
+    def heartbeat(self, pos):
+        """Проигрывает звук сердца, если рядом монстр"""
+        x, y = pos
+        x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.h // 2
+        length = math.sqrt((x1 - x)**2 + (y1 - y)**2) / MAZE_S
+        if 5 < length <= 10:
+            HEART_S.set_volume(1 - length / 10)
+            HEART_S.play()
+            pygame.time.set_timer(HEARTBEAT, round(HEART_S.get_length() * 100) * 10)
+        elif length <= 5:
+            HEART_S.set_volume(1 - length / 10)
+            HEART_S.play()
+            pygame.time.set_timer(HEARTBEAT, round(HEART_S.get_length() * 100) * 5)
+        else:
+            pygame.time.set_timer(HEARTBEAT, 100)
+
+    def draw_inventory(self):
+        """Отрисовывает все данные и инвентарь игрока"""
+        screen.blit(pygame.transform.scale(GAME_BG, (RECT_MENU.w, RECT_MENU.h)), (RECT_MENU.x, RECT_MENU.y))
+        screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (RECT_MENU.x + 10, 50))
+        screen.blit(self.update_stamina(), (RECT_MENU.x + 10, 100))
 
     def update_stamina(self):
         """Вывод текста с уровнем выносливости в %"""
@@ -250,7 +271,7 @@ class Enemy(pygame.sprite.Sprite):
             self.speed = SPEED * self.speed_coef * 2
         else:
             if len(self.path) <= 1:
-                print('changed')
+                print('Monster changed it`s passive goal')
                 self.speed = SPEED * self.speed_coef
                 goal = self.random_passive()
                 self.path = self.get_path(self.bfs(goal))
