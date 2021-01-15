@@ -8,7 +8,7 @@ from sys import exit as sysexit
 if ospath.isfile('settings.txt'):
     with open("settings.txt", 'r') as f:
         file = f.readlines()
-        SENSITIVITY = float(file[0].strip('\n').split('=')[1])
+        SENSITIVITY = int(file[0].strip('\n').split('=')[1])
         BTN_F = eval(f"pygame.K_{file[1][:-1].split('=')[1]}")
         BTN_L = eval(f"pygame.K_{file[2][:-1].split('=')[1]}")
         BTN_R = eval(f"pygame.K_{file[3][:-1].split('=')[1]}")
@@ -19,7 +19,7 @@ if ospath.isfile('settings.txt'):
         seed = file[8].strip('\n').split('=')[1]
         SEED = randint(0, 999999) if seed == 'random' else seed
 else:
-    SENSITIVITY = 0.04
+    SENSITIVITY = 50
     BTN_F = pygame.K_w
     BTN_L = pygame.K_a
     BTN_R = pygame.K_d
@@ -28,7 +28,7 @@ else:
     WIDTH, HEIGHT = 1280, 720
     SEED = randint(0, 999999)
     with open("settings.txt", 'w') as f:
-        f.write('SENSITIVITY=0.04\n')
+        f.write('SENSITIVITY=50\n')
         f.write('BTN_F=w\n')
         f.write('BTN_L=a\n')
         f.write('BTN_R=d\n')
@@ -66,6 +66,7 @@ doors_groups = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 sg_group = pygame.sprite.Group()
+inventory_group = pygame.sprite.Group()
 ####################
 PATHTIME = pygame.USEREVENT + 1
 HEARTBEAT = pygame.USEREVENT + 0
@@ -136,9 +137,6 @@ def pause_banners():
 def work_with_menu(from_where=''):
     """Отрисовка кнопок меню"""
     screen.blit(pygame.transform.scale(MENU_BG, (RECT_MENU.w, RECT_MENU.h)), (RECT_MENU.x, RECT_MENU.y))
-    screen.blit(pygame.transform.scale(BLANK, (RECT_PLAY.w, RECT_PLAY.h)), (RECT_PLAY.x, RECT_PLAY.y))
-    screen.blit(pygame.transform.scale(BLANK, (RECT_SETTINGS.w, RECT_SETTINGS.h)), (RECT_SETTINGS.x, RECT_SETTINGS.y))
-    screen.blit(pygame.transform.scale(BLANK, (RECT_EXIT.w, RECT_EXIT.h)), (RECT_EXIT.x, RECT_EXIT.y))
 
     text = ['', '', '']
     rects = [RECT_PLAY, RECT_SETTINGS, RECT_EXIT]
@@ -148,7 +146,12 @@ def work_with_menu(from_where=''):
         text = ['FREE RUN', 'TUTORIAL', 'MENU']
     elif from_where == 'game':
         text = ['RETURN', 'SETTINGS', 'EXIT']
-    for btn in range(3):
+    elif from_where == 'settings':
+        text = ['SAVE', 'BACK']
+
+    m_pos = pygame.mouse.get_pos()
+    for btn in range(len(text)):
+        screen.blit(pygame.transform.scale(BLANK, (rects[btn].w, rects[btn].h)), (rects[btn].x, rects[btn].y))
         btnB_1 = btn_font.render(text[btn], True, pygame.Color("Black"))
         btnW_1 = btn_font.render(text[btn], True, pygame.Color("White"))
         screen.blit(btnB_1, (rects[btn][0] + rects[btn][2] // 2 - btnB_1.get_width() // 2,
@@ -156,14 +159,9 @@ def work_with_menu(from_where=''):
         screen.blit(btnW_1, (rects[btn][0] + rects[btn][2] // 2 - btnW_1.get_width() // 2,
                              rects[btn][1] + rects[btn][3] // 2 - btnW_1.get_height() // 2))
 
-    # Подсветка кнопок в меню
-    m_pos = pygame.mouse.get_pos()
-    if RECT_PLAY.collidepoint(m_pos):
-        pygame.draw.rect(screen, (255, 255, 153), RECT_PLAY, round(HEIGHT / 240))
-    elif RECT_SETTINGS.collidepoint(m_pos):
-        pygame.draw.rect(screen, (255, 255, 153), RECT_SETTINGS, round(HEIGHT / 240))
-    elif RECT_EXIT.collidepoint(m_pos):
-        pygame.draw.rect(screen, (255, 255, 153), RECT_EXIT, round(HEIGHT / 240))
+        # Подсветка кнопок в меню
+        if rects[btn].collidepoint(m_pos):
+            pygame.draw.rect(screen, (255, 255, 153), rects[btn], round(HEIGHT / 240))
 
 
 def choose_session():
@@ -188,5 +186,28 @@ def choose_session():
                 elif RECT_EXIT.collidepoint(event.pos):
                     BTN_SOUND.play()
                     return True, False, False
+
+        pygame.display.flip()
+
+
+def settings():
+    menu = True
+    while menu:
+        screen.fill((0, 0, 0))
+
+        # Картинка с лого
+        screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
+                                                     HEIGHT)), (0, 0))
+        work_with_menu('settings')
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if RECT_PLAY.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    return True
+                elif RECT_SETTINGS.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    return True
 
         pygame.display.flip()

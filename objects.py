@@ -8,9 +8,10 @@ from random import choice
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, is_open=False, start=False):
         super().__init__(all_groups, doors_groups)
+        self.color = (0, 0, 0) if start else (150, 75, 0)
         # Физический объект
         self.image = pygame.Surface((CELL_W, CELL_W))
-        pygame.draw.rect(self.image, (0, 0, 0), (0, 0, CELL_W, CELL_W))
+        pygame.draw.rect(self.image, self.color, (0, 0, CELL_W, CELL_W))
         self.rect = self.image.get_rect()
         # Система координат
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
@@ -18,20 +19,48 @@ class Door(pygame.sprite.Sprite):
         self.is_open = is_open
         self.start = start
 
-    def update(self, *args):
+    def update(self):
         """Логика двери, закрытие/открытие"""
         wall = pygame.sprite.spritecollide(self, walls_groups, False)
         if wall and self.is_open:
             wall[0].kill()
+            pygame.draw.rect(self.image, (0, 0, 0), (0, 0, CELL_W, CELL_W))
         elif not wall and not self.is_open:
             Wall(self.rect.x // CELL_W, self.rect.y // CELL_W)
+            if self.start:
+                self.image.set_colorkey(self.color)
+            else:
+                pygame.draw.rect(self.image, self.color, (0, 0, CELL_W, CELL_W))
         if self.start:
+            if not self.is_open:
+                self.color = (150, 150, 150)
             if pygame.sprite.spritecollideany(self, player_group) is None:
                 self.is_open = False
-        elif SCORE == 1:
-            self.is_open = True
-        else:
-            self.is_open = False
+
+
+class InventoryCell(pygame.sprite.Sprite):
+    def __init__(self, point, manager):
+        super().__init__(inventory_group)
+        self.image = load_image('cell_inv.png')
+        self.rect = self.image.get_rect()
+        self.object = None
+        self.manager = manager
+
+        x, y = RECT_MENU.x + RECT_MENU.w // 2 - self.rect.w // 2, HEIGHT // 2
+        if point == 1:
+            self.rect.x, self.rect.y = x - self.rect.w // 1.5, y
+        elif point == 2:
+            self.rect.x, self.rect.y = x + self.rect.w // 1.5, y
+        elif point == 3:
+            self.rect.x, self.rect.y = x, y + self.rect.h * 1.25
+
+
+class InventoryManager:
+    def __init__(self, parent):
+        self.parent = parent
+        self.slot_1 = InventoryCell(1, self)
+        self.slot_2 = InventoryCell(2, self)
+        self.slot_3 = InventoryCell(3, self)
 
 
 class Wall(pygame.sprite.Sprite):
@@ -119,6 +148,7 @@ class Player(pygame.sprite.Sprite):
         # Логика
         self.lost = False
         self.is_interacting = False
+        self.inventory = InventoryManager(self)
 
     def heartbeat(self, pos):
         """Проигрывает звук сердца, если рядом монстр"""
@@ -136,10 +166,16 @@ class Player(pygame.sprite.Sprite):
         else:
             pygame.time.set_timer(HEARTBEAT, 100)
 
-    def draw_inventory(self):
+    def draw_inventory(self, score):
         """Отрисовывает все данные и инвентарь игрока"""
+        # Фон
         screen.blit(pygame.transform.scale(GAME_BG, (RECT_MENU.w, RECT_MENU.h)), (RECT_MENU.x, RECT_MENU.y))
-        screen.blit(debug_font.render('SCORE: ' + str(SCORE), True, pygame.Color("White")), (RECT_MENU.x + 10, 50))
+
+        # Ячейки инвентаря
+        inventory_group.draw(screen)
+
+        # Текст (Заменить потом на нормальный)
+        screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (RECT_MENU.x + 10, 50))
         screen.blit(self.update_stamina(), (RECT_MENU.x + 10, 100))
 
     def update_stamina(self):
@@ -151,7 +187,7 @@ class Player(pygame.sprite.Sprite):
     def change_angle(self, mouse_pos):
         """Меняем угол направления взгляда"""
         delta_mouse_pos = CENTER[0] - mouse_pos[0]
-        self.angle += SENSITIVITY * delta_mouse_pos
+        self.angle += (0.08 * SENSITIVITY / 100) * delta_mouse_pos
         self.angle = (360 + self.angle) % 360 if self.angle < 0 else self.angle % 360
 
     def update(self):

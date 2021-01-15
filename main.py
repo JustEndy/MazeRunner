@@ -40,7 +40,6 @@ def generate_level(world_map):
                         cell.kill()
     start, end = random.choice(potential_start), random.choice(potential_end)
     x_s, y_s, x_e, y_e = start.rect.x, start.rect.y, end.rect.x, end.rect.y
-    start.kill(), end.kill()
     world_map[x_s // CELL_W, y_s // CELL_W], world_map[x_e // CELL_W, y_e // CELL_W] = 1, 1
     Wall(-1, y_s // CELL_W)
 
@@ -125,11 +124,14 @@ while menu:
             # Открываем дверь по достижению 5 очков
             if SCORE == 5:
                 exit_door.is_open = True
+            else:
+                exit_door.is_open = False
 
             # Добавляем очко
             if sg_handler.changed:
                 SCORE += 1 if SCORE + 1 <= 5 else 0
                 sg_handler.update_sg()
+                monster.change_speed(SCORE)
 
             # Меняем угол направления взгляда с помощью мышки
             mouse_pos = pygame.mouse.get_pos()
@@ -143,6 +145,7 @@ while menu:
 
             all_groups.update()
             all_groups.draw(screen)
+            doors_groups.draw(screen)
             player_group.draw(screen)
             line_pos = math.degrees(math.sin(math.radians(player.angle))) + player.rect.x + player.rect.width // 2 + 1, \
                        math.degrees(math.cos(math.radians(player.angle))) + player.rect.y + player.rect.height // 2 + 1
@@ -150,7 +153,7 @@ while menu:
                                                        player.y + player.rect.height // 2), line_pos)
 
             # Отрисовка инвенторя
-            player.draw_inventory()
+            player.draw_inventory(SCORE)
             update_fps()
 
             if player.is_interacting:
@@ -178,6 +181,7 @@ while menu:
                     pygame.mouse.set_pos(CENTER)
                 elif RECT_SETTINGS.collidepoint(event.pos):
                     BTN_SOUND.play()
+                    menu = settings()
                 elif RECT_EXIT.collidepoint(event.pos):
                     BTN_SOUND.play()
                     run_pause = False
@@ -190,7 +194,7 @@ while menu:
                                                    player.y + player.rect.height // 2 + 1), line_pos)
 
         ### TEXT DEBUG ###
-        player.draw_inventory()
+        player.draw_inventory(SCORE)
         update_fps()
 
         # Отрисовываем pause-баннер
@@ -216,6 +220,7 @@ while menu:
                 menu, run_pause, run_game = choose_session()
             elif RECT_SETTINGS.collidepoint(event.pos):
                 BTN_SOUND.play()
+                menu, run_pause, run_game = settings()
             elif RECT_EXIT.collidepoint(event.pos):
                 menu = False
                 BTN_SOUND.play()
