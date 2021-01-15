@@ -86,7 +86,7 @@ run_pause = False
 run_game = True
 while menu:
     if run_pause:
-        random.seed(SEED)
+        random.seed(SEED_BAR.seed)
         player, monster, exit_door, sg_handler = restart()
     while run_pause:
         if run_game:
@@ -180,7 +180,21 @@ while menu:
                     pygame.mouse.set_pos(CENTER)
                 elif RECT_SETTINGS.collidepoint(event.pos):
                     BTN_SOUND.play()
-                    menu = settings()
+                    args = settings()
+                    if not args:
+                        menu = False
+                    elif args[0] is None:
+                        pass
+                    else:
+                        with open("settings.txt", 'w') as f:
+                            f.write(f'SENSITIVITY={args[0]}\n')
+                            f.write(f'BTN_F={args[1]}\n')
+                            f.write(f'BTN_L={args[2]}\n')
+                            f.write(f'BTN_R={args[3]}\n')
+                            f.write(f'BTN_B={args[4]}\n')
+                            f.write(f'BTN_INTERACT={args[5]}\n')
+                            f.write(f'WIDTH={args[6][1]}\n')
+                            f.write(f'HEIGHT={args[6][0]}\n')
                 elif RECT_EXIT.collidepoint(event.pos):
                     BTN_SOUND.play()
                     run_pause = False
@@ -200,6 +214,7 @@ while menu:
         [screen.blit(banner, (0, 0)) for banner in pause_banners()]
         # отрисовка менюшки
         work_with_menu('game')
+        SEED_BAR.draw()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -216,9 +231,9 @@ while menu:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if RECT_PLAY.collidepoint(event.pos):
                 BTN_SOUND.play()
-                menu, run_pause, seed = choose_session(SEED)
+                menu, run_pause, seed = choose_session(SEED_BAR)
                 if seed:
-                    SEED = seed
+                    SEED_BAR.seed = seed
             elif RECT_SETTINGS.collidepoint(event.pos):
                 BTN_SOUND.play()
                 args = settings()

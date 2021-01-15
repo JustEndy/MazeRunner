@@ -115,6 +115,40 @@ BLANK_BAR = load_image('bar_blank.png')
 ###################################
 
 
+class InputBar:
+    def __init__(self, x, y, seed):
+        self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x - self.rect.w // 2, y
+        self.activated = False
+        self.seed = str(seed)
+
+    def draw(self):
+        pygame.draw.rect(screen, (40, 40, 40), self.rect)
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        btnW_1 = seed_font.render(self.seed, True, pygame.Color("White"))
+        screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                             self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
+        if self.activated:
+            pygame.draw.rect(screen, (153, 255, 153), self.rect, round(HEIGHT / 240))
+        elif self.rect.collidepoint(pygame.mouse.get_pos()):
+            pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
+    def change_seed(self, event):
+        if event.key == pygame.K_BACKSPACE:
+            if len(self.seed) > 0:
+                self.seed = self.seed[:-1]
+        elif event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
+            self.activated = False
+        else:
+            if len(self.seed) < 6:
+                self.seed += event.unicode
+
+
+SEED_BAR = InputBar(RECT_MENU.x + RECT_MENU.w // 2, round(HEIGHT / 4), SEED)
+##################
+
+
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
     fps_text = debug_font.render(fps, True, pygame.Color("White"))
@@ -169,36 +203,7 @@ def work_with_menu(from_where=''):
 
 def choose_session(seed):
     """Выбор режима игры"""
-    class InputBar:
-        def __init__(self, x, y, seed):
-            self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
-            self.rect = self.image.get_rect()
-            self.rect.x, self.rect.y = x - self.rect.w // 2, y
-            self.activated = False
-            self.seed = str(seed)
-
-        def draw(self):
-            pygame.draw.rect(screen, (40, 40, 40), self.rect)
-            screen.blit(self.image, (self.rect.x, self.rect.y))
-            btnW_1 = seed_font.render(self.seed, True, pygame.Color("White"))
-            screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
-                                 self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
-            if self.activated:
-                pygame.draw.rect(screen, (153, 255, 153), self.rect, round(HEIGHT / 240))
-            elif self.rect.collidepoint(pygame.mouse.get_pos()):
-                pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
-
-        def change_seed(self, event):
-            if event.key == pygame.K_BACKSPACE:
-                if len(self.seed) > 0:
-                    self.seed = self.seed[:-1]
-            elif event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
-                self.activated = False
-            else:
-                if len(self.seed) < 6:
-                    self.seed += event.unicode
-
-    seedBar = InputBar(RECT_MENU.x + RECT_MENU.w // 2, round(HEIGHT / 4), seed)
+    seedBar = seed
     menu = True
     while menu:
         screen.fill((0, 0, 0))
