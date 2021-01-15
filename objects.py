@@ -41,7 +41,7 @@ class Door(pygame.sprite.Sprite):
 class InventoryCell(pygame.sprite.Sprite):
     def __init__(self, point, manager):
         super().__init__(inventory_group)
-        self.image = load_image('cell_inv.png')
+        self.image = pygame.transform.scale(load_image('cell_inv.png'), (WIDTH // 10, WIDTH // 10))
         self.rect = self.image.get_rect()
         self.object = None
         self.manager = manager
@@ -241,7 +241,7 @@ class Player(pygame.sprite.Sprite):
         final = pygame.Surface((WIDTH, HEIGHT))
         final.fill((0, 0, 0))
         final.set_colorkey((0, 0, 0))
-        text = btn_font.render(f'Press {BTN_INTERACT} to use.', False, (1, 1, 1))
+        text = btn_font.render(f'Press {INTERACT_UNICODE} to use.', False, (1, 1, 1))
         delta = text.get_height() * 2
         pygame.draw.rect(final, (255, 255, 255), (HEIGHT // 2 - text.get_width() // 2 - 5,
                                                   HEIGHT // 2 - text.get_height() // 2 - 5 + delta,

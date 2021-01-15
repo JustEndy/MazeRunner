@@ -2,8 +2,6 @@
 import random
 from objects import *
 from options import *
-random.seed(SEED)
-print(SEED)
 
 
 def generate_level(world_map):
@@ -88,6 +86,7 @@ run_pause = False
 run_game = True
 while menu:
     if run_pause:
+        random.seed(SEED)
         player, monster, exit_door, sg_handler = restart()
     while run_pause:
         if run_game:
@@ -217,10 +216,26 @@ while menu:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if RECT_PLAY.collidepoint(event.pos):
                 BTN_SOUND.play()
-                menu, run_pause, run_game = choose_session()
+                menu, run_pause, seed = choose_session(SEED)
+                if seed:
+                    SEED = seed
             elif RECT_SETTINGS.collidepoint(event.pos):
                 BTN_SOUND.play()
-                menu, run_pause, run_game = settings()
+                args = settings()
+                if not args:
+                    menu = False
+                elif args[0] is None:
+                    pass
+                else:
+                    with open("settings.txt", 'w') as f:
+                        f.write(f'SENSITIVITY={args[0]}\n')
+                        f.write(f'BTN_F={args[1]}\n')
+                        f.write(f'BTN_L={args[2]}\n')
+                        f.write(f'BTN_R={args[3]}\n')
+                        f.write(f'BTN_B={args[4]}\n')
+                        f.write(f'BTN_INTERACT={args[5]}\n')
+                        f.write(f'WIDTH={args[6][1]}\n')
+                        f.write(f'HEIGHT={args[6][0]}\n')
             elif RECT_EXIT.collidepoint(event.pos):
                 menu = False
                 BTN_SOUND.play()

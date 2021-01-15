@@ -8,16 +8,16 @@ from sys import exit as sysexit
 if ospath.isfile('settings.txt'):
     with open("settings.txt", 'r') as f:
         file = f.readlines()
-        SENSITIVITY = int(file[0].strip('\n').split('=')[1])
-        BTN_F = eval(f"pygame.K_{file[1][:-1].split('=')[1]}")
-        BTN_L = eval(f"pygame.K_{file[2][:-1].split('=')[1]}")
-        BTN_R = eval(f"pygame.K_{file[3][:-1].split('=')[1]}")
-        BTN_B = eval(f"pygame.K_{file[4][:-1].split('=')[1]}")
-        BTN_INTERACT = eval(f"pygame.K_{file[5][:-1].split('=')[1]}")
-        WIDTH = int(file[6].strip('\n').split('=')[1])
-        HEIGHT = int(file[7].strip('\n').split('=')[1])
-        seed = file[8].strip('\n').split('=')[1]
-        SEED = randint(0, 999999) if seed == 'random' else seed
+        option_list = [file[element].strip('\n').split('=')[1] for element in range(8)]
+        SENSITIVITY = int(option_list[0])
+        BTN_F = eval(f"pygame.K_{option_list[1]}")
+        BTN_L = eval(f"pygame.K_{option_list[2]}")
+        BTN_R = eval(f"pygame.K_{option_list[3]}")
+        BTN_B = eval(f"pygame.K_{option_list[4]}")
+        BTN_INTERACT = eval(f"pygame.K_{option_list[5]}")
+        INTERACT_UNICODE = option_list[5].upper()
+        WIDTH = int(option_list[6])
+        HEIGHT = int(option_list[7])
 else:
     SENSITIVITY = 50
     BTN_F = pygame.K_w
@@ -25,8 +25,8 @@ else:
     BTN_R = pygame.K_d
     BTN_B = pygame.K_s
     BTN_INTERACT = pygame.K_e
+    INTERACT_UNICODE = 'E'
     WIDTH, HEIGHT = 1280, 720
-    SEED = randint(0, 999999)
     with open("settings.txt", 'w') as f:
         f.write('SENSITIVITY=50\n')
         f.write('BTN_F=w\n')
@@ -36,7 +36,7 @@ else:
         f.write('BTN_INTERACT=e\n')
         f.write('WIDTH=1280\n')
         f.write('HEIGHT=720\n')
-        f.write('SEED=random')
+SEED = randint(0, 999999)
 ###################
 # Должно быть чётным, иначе генератор падает
 MAZE_S = 14
@@ -76,6 +76,7 @@ pygame.time.set_timer(HEARTBEAT, 100)
 pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), True)
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
 debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
+seed_font = pygame.font.SysFont("NSimSun", round(HEIGHT / 26))
 
 
 def load_image(name, colorkey=None):
@@ -109,6 +110,8 @@ GAME_BG = load_image('game_bg.png')
 MENU_BG = load_image('menu_bg.png')
 BLANK = load_image('btn_blank.png')
 NOIMAGE = load_image('noimage.png')
+SETTINGS_BG = load_image('settings_bg.png')
+BLANK_BAR = load_image('bar_blank.png')
 ###################################
 
 
@@ -164,8 +167,38 @@ def work_with_menu(from_where=''):
             pygame.draw.rect(screen, (255, 255, 153), rects[btn], round(HEIGHT / 240))
 
 
-def choose_session():
+def choose_session(seed):
     """Выбор режима игры"""
+    class InputBar:
+        def __init__(self, x, y, seed):
+            self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
+            self.rect = self.image.get_rect()
+            self.rect.x, self.rect.y = x - self.rect.w // 2, y
+            self.activated = False
+            self.seed = str(seed)
+
+        def draw(self):
+            pygame.draw.rect(screen, (40, 40, 40), self.rect)
+            screen.blit(self.image, (self.rect.x, self.rect.y))
+            btnW_1 = seed_font.render(self.seed, True, pygame.Color("White"))
+            screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                                 self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
+            if self.activated:
+                pygame.draw.rect(screen, (153, 255, 153), self.rect, round(HEIGHT / 240))
+            elif self.rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
+        def change_seed(self, event):
+            if event.key == pygame.K_BACKSPACE:
+                if len(self.seed) > 0:
+                    self.seed = self.seed[:-1]
+            elif event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
+                self.activated = False
+            else:
+                if len(self.seed) < 6:
+                    self.seed += event.unicode
+
+    seedBar = InputBar(RECT_MENU.x + RECT_MENU.w // 2, round(HEIGHT / 4), seed)
     menu = True
     while menu:
         screen.fill((0, 0, 0))
@@ -174,30 +207,179 @@ def choose_session():
         screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
                                                      HEIGHT)), (0, 0))
         work_with_menu('choose_session')
+        seedBar.draw()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False, False, False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
                     BTN_SOUND.play()
-                    return True, True, False
+                    return True, True, seedBar.seed
                 elif RECT_SETTINGS.collidepoint(event.pos):
                     BTN_SOUND.play()
                 elif RECT_EXIT.collidepoint(event.pos):
                     BTN_SOUND.play()
                     return True, False, False
+                elif seedBar.rect.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    seedBar.activated = True
+                else:
+                    seedBar.activated = False
+            elif event.type == pygame.KEYDOWN:
+                if seedBar.activated:
+                    seedBar.change_seed(event)
 
         pygame.display.flip()
 
 
 def settings():
+    class BtnSize:
+        def __init__(self, x, y, title):
+            self.image = pygame.transform.scale(load_image('cell_inv.png'), (round(WIDTH / 12.8), round(WIDTH / 12.8)))
+            self.rect = self.image.get_rect()
+            self.rect.x, self.rect.y = x, y
+            self.dict = {'480': '854',
+                         '576': '1024',
+                         '640': '1136',
+                         '720': '1280'}
+            self.title = title if title in self.dict.keys() else list(self.dict.keys())[0]
+
+        def save(self):
+            return self.title, self.dict[self.title]
+
+        def draw(self):
+            screen.blit(self.image, (self.rect.x, self.rect.y))
+            btnW_1 = btn_font.render(self.title, True, pygame.Color("White"))
+            screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                                 self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
+
+            if self.rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
+        def change_size(self):
+            keys = list(self.dict.keys())
+            index = keys.index(self.title)
+            index = index + 1 if index + 1 <= 3 else 0
+            self.title = keys[index]
+
+    class Bar:
+        def __init__(self, x, y, percent):
+            self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
+            self.rect = self.image.get_rect()
+            self.rect.x, self.rect.y = x, y
+            self.percent = int(percent)
+
+        def save(self):
+            return str(self.percent)
+
+        def draw(self):
+            pygame.draw.rect(screen, (40, 40, 40), self.rect)
+            pygame.draw.rect(screen, (153, 153, 153), (self.rect.x, self.rect.y,
+                                                       round(self.rect.w * self.percent / 100), self.rect.h))
+            screen.blit(self.image, (self.rect.x, self.rect.y))
+            btnW_1 = btn_font.render(str(self.percent), True, pygame.Color("White"))
+            screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                                 self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
+
+            if self.rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
+        def change_percent(self, pos):
+            x, y = pos
+            self.percent = round((x - self.rect.x) * 100 / self.rect.w)
+
+    class Button:
+        def __init__(self, x, y, title, key):
+            self.image = pygame.transform.scale(load_image('cell_inv.png'), (round(WIDTH / 12.8), round(WIDTH / 12.8)))
+            self.rect = self.image.get_rect()
+            self.rect.x, self.rect.y = x, y
+            self.title = title
+            self.key = key.upper()
+            self.choosed = False
+            self.parent = None
+
+        def save(self):
+            return self.key.lower()
+
+        def choose(self):
+            self.choosed = not self.choosed
+
+        def draw(self):
+            screen.blit(self.image, (self.rect.x, self.rect.y))
+            btnW_1 = btn_font.render(self.key, True, pygame.Color("White"))
+            screen.blit(btnW_1, (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                                 self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2))
+            if self.choosed:
+                pygame.draw.rect(screen, (153, 255, 153), self.rect, round(HEIGHT / 240))
+            elif self.rect.collidepoint(pygame.mouse.get_pos()):
+                pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
+        def change_btn(self, event):
+            if event.key == pygame.K_LEFT:
+                for i in self.parent:
+                    if i.key == 'left':
+                        i.key = ''
+                self.key = 'left'
+            elif event.key == pygame.K_RIGHT:
+                for i in self.parent:
+                    if i.key == 'right':
+                        i.key = ''
+                self.key = 'right'
+            elif event.key == pygame.K_UP:
+                for i in self.parent:
+                    if i.key == 'up':
+                        i.key = ''
+                self.key = 'up'
+            elif event.key == pygame.K_DOWN:
+                for i in self.parent:
+                    if i.key == 'down':
+                        i.key = ''
+                self.key = 'down'
+            elif event.unicode.lower() in 'qwertyuiopasdfghjklzxcvbnm' and event.unicode != '':
+                print(event.unicode)
+                for i in self.parent:
+                    if i.key == event.unicode.upper():
+                        i.key = ''
+                self.key = event.unicode.upper()
+
+        def set_parent(self, parent):
+            self.parent = parent
+
+    bg = pygame.transform.scale(SETTINGS_BG, (round(WIDTH / 3 * 2 / 1.05), round(HEIGHT / 1.5)))
+    bg_rect = bg.get_rect()
+    #####
+    # Buttons
+    btnF = Button(bg_rect.x + WIDTH // 4.7, bg_rect.y + HEIGHT // 4, 'BTN_F', option_list[1])
+    btnL = Button(bg_rect.x + WIDTH // 8, bg_rect.y + HEIGHT // 2.5, 'BTN_L', option_list[2])
+    btnR = Button(bg_rect.x + WIDTH // 3.3, bg_rect.y + HEIGHT // 2.5, 'BTN_R', option_list[3])
+    btnB = Button(bg_rect.x + WIDTH // 4.7, bg_rect.y + HEIGHT // 2.4, 'BTN_B', option_list[4])
+    btnI = Button(bg_rect.x + WIDTH // 2, bg_rect.y + HEIGHT // 3.4, 'BTN_INTERACT', option_list[5])
+    all_btns = [btnF, btnL, btnR, btnB, btnI]
+    [i.set_parent(all_btns) for i in all_btns]
+    # Sens Bar
+    sensBar = Bar(bg_rect.x + WIDTH // 3, bg_rect.y + HEIGHT // 1.4, option_list[0])
+    # Window Size
+    btnWin = BtnSize(bg_rect.x + WIDTH // 9, bg_rect.y + HEIGHT // 1.5, option_list[7])
+    #####
+    all_obj = [sensBar]
+    all_obj.extend(all_btns)
+    all_obj.append(btnWin)
     menu = True
+    choosed_btn = None
     while menu:
         screen.fill((0, 0, 0))
 
         # Картинка с лого
         screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
                                                      HEIGHT)), (0, 0))
+
+        # Отрисовка элементов
+        screen.blit(bg, (round(WIDTH / 3 - bg.get_width() / 2),
+                         round(HEIGHT / 2 - bg.get_height() / 2)))
+        [btn.draw() for btn in all_btns]
+        sensBar.draw()
+        btnWin.draw()
+
         work_with_menu('settings')
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -205,9 +387,26 @@ def settings():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
                     BTN_SOUND.play()
-                    return True
+                    return [obj.save() for obj in all_obj]
                 elif RECT_SETTINGS.collidepoint(event.pos):
                     BTN_SOUND.play()
-                    return True
+                    return [None]
+                elif sensBar.rect.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    sensBar.change_percent(event.pos)
+                elif btnWin.rect.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    btnWin.change_size()
+                else:
+                    choosed_btn = None
+                    for btn in all_btns:
+                        btn.choosed = False
+                        if btn.rect.collidepoint(event.pos):
+                            BTN_SOUND.play()
+                            btn.choose()
+                            choosed_btn = btn
+            elif event.type == pygame.KEYDOWN:
+                if choosed_btn is not None:
+                    choosed_btn.change_btn(event)
 
         pygame.display.flip()
