@@ -148,7 +148,6 @@ class StaminaBar:
         screen.blit(btnW_1, (px, py))
 
 
-
 class ScoreBar:
     def __init__(self):
         self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))

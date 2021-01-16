@@ -40,18 +40,19 @@ class Door(pygame.sprite.Sprite):
 
 class ItemUse:
     """Логический объект, представитель предмета в инвенторе игрока"""
-    def __init__(self, obj, *args):
+    def __init__(self, obj, id, *args):
         size = WIDTH // 10
-        self.image = pygame.transform.scale(load_image(obj + '.png'), (size, size))
+        self.image = pygame.transform.scale(load_image(id + '.png'), (size, size))
         self.rect = self.image.get_rect()
-        self.title = obj
+        self.obj = obj
+        self.id = id
         self.player = None
         self.args = args
         self.slot = None
 
     def use(self):
         # Статуэтки
-        if self.title[:-2] == 'stat':
+        if self.id[:-2] == 'stat':
             x, y = self.player.x, self.player.y
             angle = self.player.angle
             d_x, d_y = ((x + self.player.rect.width // 2 + math.degrees(0.5 * math.sin(math.radians(angle)))) // CELL_W,
@@ -72,18 +73,18 @@ class ItemUse:
 
 class Item(pygame.sprite.Sprite):
     """Физ. объект, представитель предмета в физическом мире"""
-    def __init__(self, pos, obj, *args):
+    def __init__(self, pos, obj, id, *args):
         super().__init__(all_groups, item_group)
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
         # В зависимости от объекта - своя текстура
-        if obj[:-2] == 'stat':
+        if id[:-2] == 'stat':
             self.args = args
             self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 150, 255), (0, 0, size, size))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
-        self.contain = ItemUse(obj, args)
+        self.contain = ItemUse(obj, id, args)
 
     def go_to_inventory(self):
         return self.contain
@@ -201,7 +202,8 @@ class SG(pygame.sprite.Sprite):
         """Вызывается при активации игроком"""
         self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
         self.handler.update_sg()
-        Item((self.rect.x, self.rect.y), 'stat_0', self.end_door)
+        obj, id = self.handler.statue()
+        Item((self.rect.x, self.rect.y), obj, id, self.end_door)
         self.kill()
 
     def update(self, activated=False):
@@ -217,8 +219,15 @@ class SGHandler:
         self.current_sg = choice(self.list)
         self.current_sg.add(all_groups, sg_group)
         self.current_sg.is_visible = True
+        self.stat_sprites = {}
+        for i in range(5):
+            self.stat_sprites[f'stat_{i}'] = load_image(f'stat_{i}.png')
         for sg in self.list:
             sg.add_handler(self)
+
+    def statue(self):
+        id = choice(list(self.stat_sprites.keys()))
+        return self.stat_sprites.pop(id), id
 
     def set_monster(self, m):
         self.monster = m
@@ -418,7 +427,6 @@ class Enemy(pygame.sprite.Sprite):
             self.speed = SPEED * self.speed_coef * 2
         else:
             if len(self.path) <= 1:
-                print('Monster changed it`s passive goal')
                 self.speed = SPEED * self.speed_coef
                 goal = self.random_passive()
                 self.path = self.get_path(self.bfs(goal))
