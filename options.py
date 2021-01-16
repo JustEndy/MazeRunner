@@ -66,7 +66,7 @@ doors_groups = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 sg_group = pygame.sprite.Group()
-inventory_group = pygame.sprite.Group()
+item_group = pygame.sprite.Group()
 ####################
 PATHTIME = pygame.USEREVENT + 1
 HEARTBEAT = pygame.USEREVENT + 0
@@ -113,6 +113,72 @@ NOIMAGE = load_image('noimage.png')
 SETTINGS_BG = load_image('settings_bg.png')
 BLANK_BAR = load_image('bar_blank.png')
 ###################################
+
+
+class StaminaBar:
+    def __init__(self):
+        self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = RECT_MENU.x + RECT_MENU.w // 2 - self.rect.w // 2, HEIGHT // 5 - self.rect.h * 0.5
+        self.stamina = FPS * 3
+
+    def update(self, value):
+        self.stamina += value
+        if self.stamina > FPS * 3:
+            self.stamina = FPS * 3
+        elif self.stamina < 0:
+            self.stamina = 0
+
+    def draw(self):
+        pygame.draw.rect(screen, (40, 40, 40), self.rect)
+        pygame.draw.rect(screen, (153, 153, 153), (self.rect.x, self.rect.y,
+                                                   round(self.rect.w * self.stamina / FPS / 3), self.rect.h))
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        outline = seed_font.render('STAMINA', True, pygame.Color("Black"))
+        btnW_1 = seed_font.render('STAMINA', True, pygame.Color("White"))
+        out_v = round(HEIGHT / 240)
+        offsets = [(ox, oy)
+                   for ox in range(-out_v, 2 * out_v, out_v)
+                   for oy in range(-out_v, 2 * out_v, out_v)
+                   if ox != 0 or oy != 0]
+        px, py = (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                  self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2)
+        for ox, oy in offsets:
+            screen.blit(outline, (px + ox, py + oy))
+        screen.blit(btnW_1, (px, py))
+
+
+
+class ScoreBar:
+    def __init__(self):
+        self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = RECT_MENU.x + RECT_MENU.w // 2 - self.rect.w // 2, HEIGHT // 5 - self.rect.h * 2
+        self.score = 0
+
+    def update(self, value):
+        if value > 0:
+            self.score += value if self.score + value <= 5 else 0
+        else:
+            self.score += value if self.score - value >= 0 else 0
+
+    def draw(self):
+        pygame.draw.rect(screen, (40, 40, 40), self.rect)
+        pygame.draw.rect(screen, (153, 153, 153), (self.rect.x, self.rect.y,
+                                                   round(self.rect.w * self.score / 10 * 2), self.rect.h))
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        outline = seed_font.render('SCORE', True, pygame.Color("Black"))
+        btnW_1 = seed_font.render('SCORE', True, pygame.Color("White"))
+        out_v = round(HEIGHT / 240)
+        offsets = [(ox, oy)
+                   for ox in range(-out_v, 2 * out_v, out_v)
+                   for oy in range(-out_v, 2 * out_v, out_v)
+                   if ox != 0 or oy != 0]
+        px, py = (self.rect[0] + self.rect[2] // 2 - btnW_1.get_width() // 2,
+                  self.rect[1] + self.rect[3] // 2 - btnW_1.get_height() // 2)
+        for ox, oy in offsets:
+            screen.blit(outline, (px + ox, py + oy))
+        screen.blit(btnW_1, (px, py))
 
 
 class InputBar:
@@ -243,7 +309,8 @@ def settings():
             self.image = pygame.transform.scale(load_image('cell_inv.png'), (round(WIDTH / 12.8), round(WIDTH / 12.8)))
             self.rect = self.image.get_rect()
             self.rect.x, self.rect.y = x, y
-            self.dict = {'480': '854',
+            self.dict = {'1080': '1920',
+                         '480': '854',
                          '576': '1024',
                          '640': '1136',
                          '720': '1280'}
@@ -264,7 +331,7 @@ def settings():
         def change_size(self):
             keys = list(self.dict.keys())
             index = keys.index(self.title)
-            index = index + 1 if index + 1 <= 3 else 0
+            index = index + 1 if index + 1 <= len(keys) - 1 else 0
             self.title = keys[index]
 
     class Bar:

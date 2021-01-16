@@ -38,13 +38,64 @@ class Door(pygame.sprite.Sprite):
                 self.is_open = False
 
 
-class InventoryCell(pygame.sprite.Sprite):
+class ItemUse:
+    """Логический объект, представитель предмета в инвенторе игрока"""
+    def __init__(self, obj, *args):
+        size = WIDTH // 10
+        self.image = pygame.transform.scale(load_image(obj + '.png'), (size, size))
+        self.rect = self.image.get_rect()
+        self.title = obj
+        self.player = None
+        self.args = args
+        self.slot = None
+
+    def use(self):
+        # Статуэтки
+        if self.title[:-2] == 'stat':
+            x, y = self.player.x, self.player.y
+            angle = self.player.angle
+            d_x, d_y = ((x + self.player.rect.width // 2 + math.degrees(0.5 * math.sin(math.radians(angle)))) // CELL_W,
+                        (y + self.player.rect.width // 2 + math.degrees(0.5 * math.cos(math.radians(angle)))) // CELL_W)
+            v_x, v_y = self.args[0][0]
+            v_x, v_y = v_x // CELL_W, v_y // CELL_W
+            if (v_x, v_y) == (int(d_x), int(d_y)):
+                self.player.score_bar.update(1)
+                self.player.monster.change_speed()
+                self.slot.object = None
+
+    def set_player(self, player):
+        self.player = player
+
+    def set_cell(self, slot):
+        self.slot = slot
+
+
+class Item(pygame.sprite.Sprite):
+    """Физ. объект, представитель предмета в физическом мире"""
+    def __init__(self, pos, obj, *args):
+        super().__init__(all_groups, item_group)
+        x, y = pos
+        size = math.ceil(CELL_W * 0.4)
+        # В зависимости от объекта - своя текстура
+        if obj[:-2] == 'stat':
+            self.args = args
+            self.image = pygame.Surface((size, size))
+            pygame.draw.rect(self.image, (150, 150, 255), (0, 0, size, size))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+        self.contain = ItemUse(obj, args)
+
+    def go_to_inventory(self):
+        return self.contain
+
+
+class InventoryCell:
     def __init__(self, point, manager):
-        super().__init__(inventory_group)
         self.image = pygame.transform.scale(load_image('cell_inv.png'), (WIDTH // 10, WIDTH // 10))
         self.rect = self.image.get_rect()
         self.object = None
         self.manager = manager
+        self.is_current = False
 
         x, y = RECT_MENU.x + RECT_MENU.w // 2 - self.rect.w // 2, HEIGHT // 2
         if point == 1:
@@ -54,6 +105,18 @@ class InventoryCell(pygame.sprite.Sprite):
         elif point == 3:
             self.rect.x, self.rect.y = x, y + self.rect.h * 1.25
 
+    def use(self):
+        if self.object is not None:
+            self.object.use()
+
+    def draw(self):
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        if self.object is not None:
+            screen.blit(self.object.image, (self.rect.x + self.rect.w // 2 - self.object.rect.w // 2,
+                                            self.rect.y + self.rect.h // 2 - self.object.rect.h // 2))
+        if self.is_current:
+            pygame.draw.rect(screen, (255, 255, 153), self.rect, round(HEIGHT / 240))
+
 
 class InventoryManager:
     def __init__(self, parent):
@@ -61,6 +124,46 @@ class InventoryManager:
         self.slot_1 = InventoryCell(1, self)
         self.slot_2 = InventoryCell(2, self)
         self.slot_3 = InventoryCell(3, self)
+        self.current = self.slot_1
+        self.list = [self.slot_1, self.slot_2, self.slot_3]
+
+    def use(self):
+        self.current.use()
+
+    def pickup(self, item):
+        for slot in self.list:
+            if slot.object is None:
+                slot.object = item.go_to_inventory()
+                slot.object.set_player(self.parent)
+                slot.object.set_cell(slot)
+                item.kill()
+                break
+
+    def draw(self):
+        for slot in self.list:
+            slot.draw()
+
+    def update(self, value=None):
+        if self.current is None:
+            return
+        self.current.is_current = False
+        if value is None:
+            btns = pygame.key.get_pressed()
+            if btns[pygame.K_1]:
+                self.current = self.list[0]
+            elif btns[pygame.K_2]:
+                self.current = self.list[1]
+            elif btns[pygame.K_3]:
+                self.current = self.list[2]
+        else:
+            index = self.list.index(self.current)
+            index += value
+            if index < 0:
+                index = 2
+            elif index > 2:
+                index = 0
+            self.current = self.list[index]
+        self.current.is_current = True
 
 
 class Wall(pygame.sprite.Sprite):
@@ -75,7 +178,7 @@ class Wall(pygame.sprite.Sprite):
 
 class SG(pygame.sprite.Sprite):
     """Объект мини-игры"""
-    def __init__(self, pos):
+    def __init__(self, pos, end_door):
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
         super().__init__()
@@ -88,6 +191,7 @@ class SG(pygame.sprite.Sprite):
         self.rect.y = y * CELL_W + randint(0, CELL_W - self.rect.height)
         # Логика
         self.is_visible = False
+        self.end_door = end_door
 
     def add_handler(self, obj):
         """Добавление ссылки на обработчик"""
@@ -96,7 +200,8 @@ class SG(pygame.sprite.Sprite):
     def activated(self):
         """Вызывается при активации игроком"""
         self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
-        self.handler.changed = True
+        self.handler.update_sg()
+        Item((self.rect.x, self.rect.y), 'stat_0', self.end_door)
         self.kill()
 
     def update(self, activated=False):
@@ -108,7 +213,6 @@ class SG(pygame.sprite.Sprite):
 class SGHandler:
     """Объект для обработки всех мини-игр"""
     def __init__(self, sgs):
-        self.changed = False
         self.list = sgs
         self.current_sg = choice(self.list)
         self.current_sg.add(all_groups, sg_group)
@@ -121,7 +225,6 @@ class SGHandler:
 
     def update_sg(self):
         """Меняем нынешнюю активную игру"""
-        self.changed = False
         self.list.remove(self.current_sg)
         if self.list:
             self.current_sg = choice(self.list)
@@ -131,7 +234,7 @@ class SGHandler:
 
 class Player(pygame.sprite.Sprite):
     """Объект игрока"""
-    def __init__(self, pos):
+    def __init__(self, pos, w_map):
         x, y = pos
         size = math.ceil(CELL_W * 0.25)
         super().__init__(all_groups, player_group)
@@ -140,8 +243,9 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (155, 255, 155), (0, 0, size, size))
         self.rect = self.image.get_rect()
 
-        self.stamina = FPS * 3
+        self.stamina = StaminaBar()
         # Система координат
+        self.w_map = w_map
         self.angle = 90
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
@@ -149,6 +253,15 @@ class Player(pygame.sprite.Sprite):
         self.lost = False
         self.is_interacting = False
         self.inventory = InventoryManager(self)
+        self.score_bar = ScoreBar()
+        self.monster = None
+        self.sg_handler = None
+
+    def set_monster(self, m):
+        self.monster = m
+
+    def set_sg_handler(self, h):
+        self.sg_handler = h
 
     def heartbeat(self, pos):
         """Проигрывает звук сердца, если рядом монстр"""
@@ -166,23 +279,17 @@ class Player(pygame.sprite.Sprite):
         else:
             pygame.time.set_timer(HEARTBEAT, 100)
 
-    def draw_inventory(self, score):
+    def draw_inventory(self):
         """Отрисовывает все данные и инвентарь игрока"""
         # Фон
         screen.blit(pygame.transform.scale(GAME_BG, (RECT_MENU.w, RECT_MENU.h)), (RECT_MENU.x, RECT_MENU.y))
 
         # Ячейки инвентаря
-        inventory_group.draw(screen)
+        self.inventory.draw()
 
         # Текст (Заменить потом на нормальный)
-        screen.blit(debug_font.render('SCORE: ' + str(score), True, pygame.Color("White")), (RECT_MENU.x + 10, 50))
-        screen.blit(self.update_stamina(), (RECT_MENU.x + 10, 100))
-
-    def update_stamina(self):
-        """Вывод текста с уровнем выносливости в %"""
-        stamina = 'STAMINA: ' + str(int(self.stamina / FPS / 3 * 100)) + "%"
-        text = debug_font.render(stamina, True, pygame.Color("White"))
-        return text
+        self.score_bar.draw()
+        self.stamina.draw()
 
     def change_angle(self, mouse_pos):
         """Меняем угол направления взгляда"""
@@ -198,16 +305,16 @@ class Player(pygame.sprite.Sprite):
                    math.sin(math.radians(self.angle))
 
         if not any(btns):
-            self.stamina += 0.5 if self.stamina + 1 <= FPS * 3 + 1 else 0
+            self.stamina.update(0.5)
         else:
             if pygame.key.get_mods() != 4097:
-                self.stamina += 0.25 if self.stamina + 1 <= FPS * 3 + 1 else 0
+                self.stamina.update(0.25)
 
         if btns[pygame.K_UP] or btns[BTN_F]:
-            if pygame.key.get_mods() == 4097 and self.stamina > 0:
+            if pygame.key.get_mods() == 4097 and self.stamina.stamina > 0:
                 self.y += cos * SPEED
                 self.x += sin * SPEED
-                self.stamina -= 1
+                self.stamina.update(-1)
             else:
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6
@@ -237,6 +344,10 @@ class Player(pygame.sprite.Sprite):
         else:
             self.is_interacting = False
 
+        item = pygame.sprite.spritecollide(self, item_group, False)
+        if item:
+            self.inventory.pickup(item[0])
+
     def interact_text(self):
         final = pygame.Surface((WIDTH, HEIGHT))
         final.fill((0, 0, 0))
@@ -252,7 +363,7 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos, player, w_map, coef=0.4):
+    def __init__(self, pos, player, coef=0.4):
         x, y = pos
         super().__init__(all_groups, enemy_group)
         # Физический объект
@@ -266,16 +377,16 @@ class Enemy(pygame.sprite.Sprite):
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
         self.path = []
-        self.w_map = w_map
+        self.w_map = player.w_map
         # Сосотояние монстра, Агрессия/Пассивность
         self.aggressive = False
         # Скорость
         self.speed_coef = coef
         self.speed = SPEED * self.speed_coef
 
-    def change_speed(self, value):
+    def change_speed(self):
         """Изменение скорости монстра в зависимости от переменной Score"""
-        self.speed_coef = 0.4 + value * 0.1
+        self.speed_coef = 0.4 + self.player.score_bar.score * 0.1
         if self.aggressive:
             self.speed = SPEED * self.speed_coef * 2
         else:
