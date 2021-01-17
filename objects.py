@@ -2,7 +2,24 @@
 from options import *
 from collections import deque
 import math
-from random import choice
+import random
+
+
+class Meat(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(all_groups, meat_group)
+        self.health = FPS * 3
+        size = math.ceil(CELL_W * 0.4)
+        self.image = pygame.Surface((size, size))
+        pygame.draw.rect(self.image, (150, 35, 35), (0, 0, size, size))
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+
+    def update(self, value=None):
+        if self.health <= 0:
+            self.kill()
+        if value is not None:
+            self.health += value
 
 
 class Door(pygame.sprite.Sprite):
@@ -63,6 +80,20 @@ class ItemUse:
                 self.player.score_bar.update(1)
                 self.player.monster.change_speed()
                 self.slot.object = None
+        elif self.id == 'chock':
+            CHOCK_SOUND.play()
+            self.player.stamina.stamina = FPS * 3
+            self.slot.object = None
+        elif self.id == 'bell':
+            BELL_SOUND.play()
+            x, y = self.player.x, self.player.y
+            self.player.monster.set_custom_goal((x, y))
+            self.slot.object = None
+        elif self.id == 'pack':
+            MEAT_SOUND.play()
+            x, y = self.player.x, self.player.y
+            Meat(x, y)
+            self.slot.object = None
 
     def set_player(self, player):
         self.player = player
@@ -77,17 +108,56 @@ class Item(pygame.sprite.Sprite):
         super().__init__(all_groups, item_group)
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
+        self.id = id
         # В зависимости от объекта - своя текстура
         if id[:-2] == 'stat':
             self.args = args
             self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 150, 255), (0, 0, size, size))
+        elif id == 'chock':
+            self.args = args
+            self.image = pygame.Surface((size, size))
+            pygame.draw.rect(self.image, (150, 35, 150), (0, 0, size, size))
+        elif id == 'bell':
+            self.args = args
+            self.image = pygame.Surface((size, size))
+            pygame.draw.rect(self.image, (150, 150, 35), (0, 0, size, size))
+        elif id == 'pack':
+            self.args = args
+            self.image = pygame.Surface((size, size))
+            pygame.draw.rect(self.image, (150, 35, 35), (0, 0, size, size))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
         self.contain = ItemUse(obj, id, args)
 
     def go_to_inventory(self):
+        if self.id[:-2] != 'stat':
+            self.args[0].amount -= 1
         return self.contain
+
+
+class ItemSpawner:
+    """Генератор предметов"""
+    def __init__(self, w_map):
+        self.w_map = w_map
+        self.amount = 0
+        self.sprites = {'chock': load_image('chock.png'),
+                        'bell': load_image('bell.png'),
+                        'pack': load_image('pack.png')}
+
+    def spawn(self):
+        if self.amount < 3:
+            if random.random() <= 0.1:
+                c_x, c_y = 0, 0
+                size = math.ceil(CELL_W * 0.4)
+                while not self.w_map[c_x][c_y]:
+                    c_x = random.randint(1, len(self.w_map) - 1)
+                    c_y = random.randint(1, len(self.w_map[c_x]) - 1)
+                x = c_x * CELL_W + random.randint(0, CELL_W - size)
+                y = c_y * CELL_W + random.randint(0, CELL_W - size)
+                id = random.choice(list(self.sprites.keys()))
+                Item((x, y), self.sprites[id], id, self)
+                self.amount += 1
 
 
 class InventoryCell:
@@ -188,8 +258,8 @@ class SG(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (255, 255, 153), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Координаты
-        self.rect.x = x * CELL_W + randint(0, CELL_W - self.rect.width)
-        self.rect.y = y * CELL_W + randint(0, CELL_W - self.rect.height)
+        self.rect.x = x * CELL_W + randint(0, CELL_W - size)
+        self.rect.y = y * CELL_W + randint(0, CELL_W - size)
         # Логика
         self.is_visible = False
         self.end_door = end_door
@@ -216,7 +286,7 @@ class SGHandler:
     """Объект для обработки всех мини-игр"""
     def __init__(self, sgs):
         self.list = sgs
-        self.current_sg = choice(self.list)
+        self.current_sg = random.choice(self.list)
         self.current_sg.add(all_groups, sg_group)
         self.current_sg.is_visible = True
         self.stat_sprites = {}
@@ -226,7 +296,7 @@ class SGHandler:
             sg.add_handler(self)
 
     def statue(self):
-        id = choice(list(self.stat_sprites.keys()))
+        id = random.choice(list(self.stat_sprites.keys()))
         return self.stat_sprites.pop(id), id
 
     def set_monster(self, m):
@@ -236,7 +306,7 @@ class SGHandler:
         """Меняем нынешнюю активную игру"""
         self.list.remove(self.current_sg)
         if self.list:
-            self.current_sg = choice(self.list)
+            self.current_sg = random.choice(self.list)
             self.current_sg.is_visible = True
             self.current_sg.add(all_groups, sg_group)
 
@@ -262,6 +332,7 @@ class Player(pygame.sprite.Sprite):
         self.lost = False
         self.is_interacting = False
         self.inventory = InventoryManager(self)
+        self.item_spawner = ItemSpawner(w_map)
         self.score_bar = ScoreBar()
         self.monster = None
         self.sg_handler = None
@@ -472,12 +543,21 @@ class Enemy(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.x = x
             self.x = x
+        meat = pygame.sprite.spritecollide(self, meat_group, False)
+        if meat:
+            meat[0].update(-1)
+            self.rect.x = x
+            self.x = x
         if y1 < y2:
             self.y += self.speed
         elif y1 > y2:
             self.y -= self.speed
         self.rect.y = int(self.y)
         if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.y = y
+            self.y = y
+        if meat:
+            meat[0].update(-1)
             self.rect.y = y
             self.y = y
         self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W

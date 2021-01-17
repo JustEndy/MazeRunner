@@ -67,9 +67,12 @@ player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 sg_group = pygame.sprite.Group()
 item_group = pygame.sprite.Group()
+meat_group = pygame.sprite.Group()
 ####################
 PATHTIME = pygame.USEREVENT + 1
 HEARTBEAT = pygame.USEREVENT + 0
+ITEMSPAWN = pygame.USEREVENT + 2
+pygame.time.set_timer(ITEMSPAWN, 1000)
 pygame.time.set_timer(PATHTIME, 100)
 pygame.time.set_timer(HEARTBEAT, 100)
 ####################
@@ -105,7 +108,10 @@ def load_sound(name):
 
 
 BTN_SOUND = load_sound('btn_click.wav')
+CHOCK_SOUND = load_sound('chocolate.wav')
+BELL_SOUND = load_sound('bell.wav')
 HEART_S = load_sound('heart_s.wav')
+MEAT_SOUND = load_sound('meat.wav')
 GAME_BG = load_image('game_bg.png')
 MENU_BG = load_image('menu_bg.png')
 BLANK = load_image('btn_blank.png')

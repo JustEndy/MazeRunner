@@ -1,5 +1,4 @@
 """Основной модуль, корень проекта с логикой"""
-import random
 from objects import *
 from options import *
 
@@ -42,11 +41,11 @@ def generate_level(world_map):
     Wall(-1, y_s // CELL_W)
 
     sgs = []
-    sgs.append(SG(choice(double_maybe(2, 2)), (x_e, y_e)))
-    sgs.append(SG(choice(double_maybe((MAZE_S * 2 + 1) - 3, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
-    sgs.append(SG(choice(double_maybe(2, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
-    sgs.append(SG(choice(double_maybe((MAZE_S * 2 + 1) - 3, 2)), (x_e, y_e)))
-    sgs.append(SG(choice(double_maybe(MAZE_S + 1, MAZE_S + 1)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe(2, 2)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe(2, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, 2)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe(MAZE_S + 1, MAZE_S + 1)), (x_e, y_e)))
     sg_handler = SGHandler(sgs)
     return (x_s, y_s), (x_e, y_e), world_map, sg_handler
 
@@ -102,14 +101,14 @@ while menu:
                 elif event.type == HEARTBEAT:
                     player.heartbeat((monster.rect.x + monster.rect.w // 2,
                                       monster.rect.y + monster.rect.h // 2))
+                elif event.type == ITEMSPAWN:
+                    player.item_spawner.spawn()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         monster.change_behave()
                     elif event.key == pygame.K_BACKSPACE:
                         # Блок отладки по нажатию на Бэкспейс
-                        print(player.angle)
-                        print(monster.aggressive)
-                        print(monster.speed, monster.speed_coef)
+                        player.item_spawner.spawn()
                     elif event.key == pygame.K_ESCAPE:
                         run_game = False
                     elif event.key == pygame.K_KP_PLUS:
