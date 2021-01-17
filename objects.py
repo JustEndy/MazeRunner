@@ -72,8 +72,8 @@ class ItemUse:
         if self.id[:-2] == 'stat':
             x, y = self.player.x, self.player.y
             angle = self.player.angle
-            d_x, d_y = ((x + self.player.rect.width // 2 + math.degrees(0.5 * math.sin(math.radians(angle)))) // CELL_W,
-                        (y + self.player.rect.width // 2 + math.degrees(0.5 * math.cos(math.radians(angle)))) // CELL_W)
+            d_x, d_y = ((x + self.player.rect.width // 2 + 0.5 * math.sin(angle)) // CELL_W,
+                        (y + self.player.rect.width // 2 + 0.5 * math.cos(angle)) // CELL_W)
             v_x, v_y = self.args[0][0]
             v_x, v_y = v_x // CELL_W, v_y // CELL_W
             if (v_x, v_y) == (int(d_x), int(d_y)):
@@ -325,7 +325,7 @@ class Player(pygame.sprite.Sprite):
         self.stamina = StaminaBar()
         # Система координат
         self.w_map = w_map
-        self.angle = math.radians(90)
+        self.angle = math.radians(0)
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
         self.fov = math.pi / 3
@@ -340,21 +340,42 @@ class Player(pygame.sprite.Sprite):
         self.sg_handler = None
 
     def ray_casting(self):
+
+        def mapping(a, b):
+            return a // CELL_W * CELL_W, b // CELL_W * CELL_W
+
         d = NUM_RAYS / (2 * math.tan(self.fov / 2))
         cur_angle = self.angle - self.fov / 2
         p_x, p_y = self.pos
-        for ray in range(NUM_RAYS, 0, -1):
+        cp_x, cp_y = mapping(p_x, p_y)
+        for ray in range(NUM_RAYS):
             sin_a = math.sin(cur_angle)
             cos_a = math.cos(cur_angle)
-            for delta in range(DEPTH):
-                x = p_x + delta * sin_a
-                y = p_y + delta * cos_a
-                # pygame.draw.line(screen, (50, 50, 50), self.pos, (x, y), 2)
-                if not self.w_map[int(x // CELL_W) % (MAZE_S * 2 + 1)][int(y // CELL_W) % (MAZE_S * 2 + 1)]:
-                    h = d * CELL_W * 2 / delta / math.cos(self.angle - cur_angle)
-                    c = 255 / (1 + delta**2 * 0.0002)
-                    pygame.draw.rect(screen, (c, c // 2, c // 3), (ray * SCALE, HEIGHT // 2 - h // 2, SCALE, h))
+
+            # Вертикали
+            x, dx = (cp_x + CELL_W, 1) if cos_a >= 0 else (cp_x, -1)
+            for i in range(len(self.w_map)):
+                delta_v = (x - p_x) / cos_a
+                y = p_y + delta_v * sin_a
+                m = 1 if x < p_x else 0
+                if not self.w_map[int(x // CELL_W - m) % (MAZE_S * 2 + 1), int(y // CELL_W) % (MAZE_S * 2 + 1)]:
                     break
+                x += dx * CELL_W
+            # Вертикали
+            y, dy = (cp_y + CELL_W, 1) if sin_a >= 0 else (cp_y, -1)
+            for i in range(len(self.w_map[cp_x // CELL_W])):
+                delta_h = (y - p_y) / sin_a
+                x = p_x + delta_h * cos_a
+                m = 1 if y < p_y else 0
+                if not self.w_map[int(x // CELL_W) % (MAZE_S * 2 + 1), int(y // CELL_W - m) % (MAZE_S * 2 + 1)]:
+                    break
+                y += dy * CELL_W
+
+            # Проекция
+            delta = delta_v if delta_v < delta_h else delta_h
+            h = d * CELL_W * 2 / delta / math.cos(self.angle - cur_angle)
+            c = 255 / (1 + delta ** 2 * 0.0002)
+            pygame.draw.rect(screen, (c, c // 2, c // 3), (ray * SCALE, HEIGHT // 2 - h // 2, SCALE, h))
             cur_angle += self.delta_a
 
     @property
@@ -397,16 +418,16 @@ class Player(pygame.sprite.Sprite):
 
     def change_angle(self, mouse_pos):
         """Меняем угол направления взгляда"""
-        delta_mouse_pos = CENTER[0] - mouse_pos[0]
+        delta_mouse_pos = mouse_pos[0] - CENTER[0]
         self.angle += (0.0008 * SENSITIVITY / 100) * delta_mouse_pos
-        self.angle = (2 * math.pi + self.angle) % (2 * math.pi) if self.angle < 0 else self.angle % (2 * math.pi)
+        self.angle = (2 * math.pi + self.angle) % (2 * math.pi) if self.angle >= 0 else self.angle % (2 * math.pi)
 
     def update(self):
         """Передвижение"""
         btns = pygame.key.get_pressed()
         x, y = self.rect.x, self.rect.y
-        cos, sin = math.cos(self.angle), \
-                   math.sin(self.angle)
+        cos, sin = math.sin(self.angle), \
+                   math.cos(self.angle)
 
         if not any(btns):
             self.stamina.update(0.5)

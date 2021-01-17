@@ -81,9 +81,10 @@ btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), Tru
 debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
 seed_font = pygame.font.SysFont("NSimSun", round(HEIGHT / 26))
 ### RAY CAST ###
-NUM_RAYS = 200
+NUM_RAYS = 400
 DEPTH = 300
-SCALE = round((WIDTH - RECT_MENU.w) / NUM_RAYS)
+GAME_WIN = WIDTH - RECT_MENU.w
+SCALE = round(GAME_WIN / NUM_RAYS)
 
 
 def load_image(name, colorkey=None):

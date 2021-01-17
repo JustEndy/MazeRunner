@@ -144,10 +144,6 @@ while menu:
             all_groups.draw(screen)
             doors_groups.draw(screen)
             player_group.draw(screen)
-            line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(player.angle)),
-                        player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(player.angle)))
-            pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
-                                                       player.y + player.rect.height // 2), line_pos)
 
             # Отрисовка Псевдо 3д
             player.ray_casting()
@@ -202,10 +198,6 @@ while menu:
 
         all_groups.draw(screen)
         player_group.draw(screen)
-        line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(player.angle)),
-                    player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(player.angle)))
-        pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2 + 1,
-                                                   player.y + player.rect.height // 2 + 1), line_pos)
 
         # Отрисовываем pause-баннер
         [screen.blit(banner, (0, 0)) for banner in pause_banners()]
