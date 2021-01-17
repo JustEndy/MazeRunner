@@ -373,7 +373,7 @@ class Player(pygame.sprite.Sprite):
 
             # Проекция
             delta = delta_v if delta_v < delta_h else delta_h
-            h = d * CELL_W * 2 / delta / math.cos(self.angle - cur_angle)
+            h = d * CELL_W * 1.2 / delta / math.cos(self.angle - cur_angle)
             c = 255 / (1 + delta ** 2 * 0.0002)
             pygame.draw.rect(screen, (c, c // 2, c // 3), (ray * SCALE, HEIGHT // 2 - h // 2, SCALE, h))
             cur_angle += self.delta_a

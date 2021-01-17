@@ -3,6 +3,7 @@ import pygame
 from maze import *
 from os import path as ospath
 from sys import exit as sysexit
+from math import ceil as cl
 
 # GAME SETTINGS
 if ospath.isfile('settings.txt'):
@@ -51,10 +52,14 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 maze = Maze(MAZE_S, MAZE_S).get_maze()
 ####################
-menu_x, width_x = round(WIDTH / 3 * 2), WIDTH - round(WIDTH / 3 * 2)
-RECT_MENU = pygame.Rect(menu_x, 0, width_x, HEIGHT)
-menu_x, menu_y = round(menu_x + menu_x * 0.075), round(HEIGHT / 3 + HEIGHT / 3 * 0.25)
-width_x, width_y = round(width_x - width_x * 0.3), round(HEIGHT / 3 * 0.3)
+### RAY CAST ###
+NUM_RAYS = 400
+DEPTH = 300
+SCALE = round(WIDTH / 3 * 2 / NUM_RAYS)
+GAME_WIN = SCALE * NUM_RAYS
+RECT_MENU = pygame.Rect(GAME_WIN, 0, WIDTH - GAME_WIN, HEIGHT)
+menu_x, menu_y = round(RECT_MENU.x + RECT_MENU.w * 0.15), round(HEIGHT / 3 + HEIGHT / 3 * 0.25)
+width_x, width_y = round(RECT_MENU.w - RECT_MENU.w * 0.3), round(HEIGHT / 3 * 0.3)
 RECT_PLAY = pygame.Rect(menu_x, menu_y, width_x, width_y)
 RECT_SETTINGS = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3 * 0.5), width_x, width_y)
 RECT_EXIT = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3), width_x, width_y)
@@ -80,11 +85,6 @@ pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), Tr
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
 debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
 seed_font = pygame.font.SysFont("NSimSun", round(HEIGHT / 26))
-### RAY CAST ###
-NUM_RAYS = 400
-DEPTH = 300
-GAME_WIN = WIDTH - RECT_MENU.w
-SCALE = round(GAME_WIN / NUM_RAYS)
 
 
 def load_image(name, colorkey=None):
