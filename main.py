@@ -144,10 +144,13 @@ while menu:
             all_groups.draw(screen)
             doors_groups.draw(screen)
             player_group.draw(screen)
-            line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(math.radians(player.angle))),
-                        player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(math.radians(player.angle))))
+            line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(player.angle)),
+                        player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(player.angle)))
             pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2,
                                                        player.y + player.rect.height // 2), line_pos)
+
+            # Отрисовка Псевдо 3д
+            player.ray_casting()
 
             # Отрисовка инвенторя
             player.draw_inventory()
@@ -199,8 +202,8 @@ while menu:
 
         all_groups.draw(screen)
         player_group.draw(screen)
-        line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(math.radians(player.angle))),
-                    player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(math.radians(player.angle))))
+        line_pos = (player.x + player.rect.width // 2 + math.degrees(0.5 * math.sin(player.angle)),
+                    player.y + player.rect.width // 2 + math.degrees(0.5 * math.cos(player.angle)))
         pygame.draw.line(screen, (100, 255, 100), (player.x + player.rect.width // 2 + 1,
                                                    player.y + player.rect.height // 2 + 1), line_pos)
 

@@ -325,9 +325,11 @@ class Player(pygame.sprite.Sprite):
         self.stamina = StaminaBar()
         # Система координат
         self.w_map = w_map
-        self.angle = 90
+        self.angle = math.radians(90)
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
+        self.fov = math.pi / 3
+        self.delta_a = self.fov / NUM_RAYS
         # Логика
         self.lost = False
         self.is_interacting = False
@@ -336,6 +338,28 @@ class Player(pygame.sprite.Sprite):
         self.score_bar = ScoreBar()
         self.monster = None
         self.sg_handler = None
+
+    def ray_casting(self):
+        d = NUM_RAYS / (2 * math.tan(self.fov / 2))
+        cur_angle = self.angle - self.fov / 2
+        p_x, p_y = self.pos
+        for ray in range(NUM_RAYS, 0, -1):
+            sin_a = math.sin(cur_angle)
+            cos_a = math.cos(cur_angle)
+            for delta in range(DEPTH):
+                x = p_x + delta * sin_a
+                y = p_y + delta * cos_a
+                # pygame.draw.line(screen, (50, 50, 50), self.pos, (x, y), 2)
+                if not self.w_map[int(x // CELL_W) % (MAZE_S * 2 + 1)][int(y // CELL_W) % (MAZE_S * 2 + 1)]:
+                    h = d * CELL_W * 2 / delta / math.cos(self.angle - cur_angle)
+                    c = 255 / (1 + delta**2 * 0.0002)
+                    pygame.draw.rect(screen, (c, c // 2, c // 3), (ray * SCALE, HEIGHT // 2 - h // 2, SCALE, h))
+                    break
+            cur_angle += self.delta_a
+
+    @property
+    def pos(self):
+        return self.rect.center
 
     def set_monster(self, m):
         self.monster = m
@@ -347,7 +371,7 @@ class Player(pygame.sprite.Sprite):
         """Проигрывает звук сердца, если рядом монстр"""
         x, y = pos
         x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.h // 2
-        length = math.sqrt((x1 - x)**2 + (y1 - y)**2) / MAZE_S
+        length = math.sqrt((x1 - x)**2 + (y1 - y)**2) / MAZE_S * (HEIGHT / 720)
         if 5 < length <= 10:
             HEART_S.set_volume(1 - length / 10)
             HEART_S.play()
@@ -374,15 +398,15 @@ class Player(pygame.sprite.Sprite):
     def change_angle(self, mouse_pos):
         """Меняем угол направления взгляда"""
         delta_mouse_pos = CENTER[0] - mouse_pos[0]
-        self.angle += (0.08 * SENSITIVITY / 100) * delta_mouse_pos
-        self.angle = (360 + self.angle) % 360 if self.angle < 0 else self.angle % 360
+        self.angle += (0.0008 * SENSITIVITY / 100) * delta_mouse_pos
+        self.angle = (2 * math.pi + self.angle) % (2 * math.pi) if self.angle < 0 else self.angle % (2 * math.pi)
 
     def update(self):
         """Передвижение"""
         btns = pygame.key.get_pressed()
         x, y = self.rect.x, self.rect.y
-        cos, sin = math.cos(math.radians(self.angle)), \
-                   math.sin(math.radians(self.angle))
+        cos, sin = math.cos(self.angle), \
+                   math.sin(self.angle)
 
         if not any(btns):
             self.stamina.update(0.5)

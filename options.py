@@ -43,7 +43,7 @@ MAZE_S = 14
 FPS = 60
 CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
-SPEED = HEIGHT / 360
+SPEED = HEIGHT / 360 * 0.5
 SCORE = 0
 pygame.init()
 pygame.display.set_caption('Maze Runner | Work in Progress')
@@ -80,6 +80,10 @@ pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), Tr
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
 debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
 seed_font = pygame.font.SysFont("NSimSun", round(HEIGHT / 26))
+### RAY CAST ###
+NUM_RAYS = 200
+DEPTH = 300
+SCALE = round((WIDTH - RECT_MENU.w) / NUM_RAYS)
 
 
 def load_image(name, colorkey=None):
