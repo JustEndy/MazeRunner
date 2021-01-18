@@ -37,15 +37,15 @@ def generate_level(world_map):
                         cell.kill()
     start, end = random.choice(potential_start), random.choice(potential_end)
     x_s, y_s, x_e, y_e = start.rect.x, start.rect.y, end.rect.x, end.rect.y
-    world_map[x_s // CELL_W, y_s // CELL_W], world_map[x_e // CELL_W, y_e // CELL_W] = 1, 1
-    Wall(-1, y_s // CELL_W)
+    world_map[x_e // CELL_W, y_e // CELL_W], world_map[x_s // CELL_W, y_s // CELL_W] = 2, 2
+    start.kill(), end.kill()
 
     sgs = []
-    sgs.append(SG(random.choice(double_maybe(2, 2)), (x_e, y_e)))
-    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
-    sgs.append(SG(random.choice(double_maybe(2, (MAZE_S * 2 + 1) - 3)), (x_e, y_e)))
-    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, 2)), (x_e, y_e)))
-    sgs.append(SG(random.choice(double_maybe(MAZE_S + 1, MAZE_S + 1)), (x_e, y_e)))
+    sgs.append(SG(random.choice(double_maybe(2, 2)), ((x_e, y_e), (x_s, y_s))))
+    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, (MAZE_S * 2 + 1) - 3)), ((x_e, y_e), (x_s, y_s))))
+    sgs.append(SG(random.choice(double_maybe(2, (MAZE_S * 2 + 1) - 3)), ((x_e, y_e), (x_s, y_s))))
+    sgs.append(SG(random.choice(double_maybe((MAZE_S * 2 + 1) - 3, 2)), ((x_e, y_e), (x_s, y_s))))
+    sgs.append(SG(random.choice(double_maybe(MAZE_S + 1, MAZE_S + 1)), ((x_e, y_e), (x_s, y_s))))
     sg_handler = SGHandler(sgs)
     return (x_s, y_s), (x_e, y_e), world_map, sg_handler
 
@@ -53,15 +53,14 @@ def generate_level(world_map):
 def generate_entity():
     """Создание основных объектов"""
     pos_p, pos_e, wmap, sg_handler = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
-    player = Player(pos_p, wmap)
+    exit_doors = Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W), Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
+    player = Player(pos_p, wmap, exit_doors)
     monster = Enemy(pos_e, player)
-    Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W, is_open=True, start=True)
-    exit_door = Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
     sg_handler.set_monster(monster)
     player.set_monster(monster)
     player.set_sg_handler(sg_handler)
 
-    return player, monster, exit_door, sg_handler
+    return player, monster, exit_doors, sg_handler
 
 
 def restart():
@@ -85,7 +84,7 @@ run_game = True
 while menu:
     if run_pause:
         random.seed(SEED_BAR.seed)
-        player, monster, exit_door, sg_handler = restart()
+        player, monster, exit_doors, sg_handler = restart()
     while run_pause:
         if run_game:
             pygame.mouse.set_visible(False)
@@ -126,9 +125,13 @@ while menu:
 
             # Открываем дверь по достижению 5 очков
             if player.score_bar.score == 5:
-                exit_door.is_open = True
+                for door in exit_doors:
+                    door.is_open = True
+                    player.w_map[door.pos] = 3
             else:
-                exit_door.is_open = False
+                for door in exit_doors:
+                    door.is_open = False
+                    player.w_map[door.pos] = 2
 
             # Меняем угол направления взгляда с помощью мышки
             mouse_pos = pygame.mouse.get_pos()
@@ -137,8 +140,8 @@ while menu:
                 pygame.mouse.set_pos(CENTER)
 
             # Рестарт уровня
-            if player.rect.x + player.rect.w > HEIGHT or player.lost:
-                player, monster, exit_door, sg_handler = restart()
+            if player.win or player.lost:
+                player, monster, exit_doors, sg_handler = restart()
 
             all_groups.update()
 

@@ -63,7 +63,7 @@ width_x, width_y = round(RECT_MENU.w - RECT_MENU.w * 0.3), round(HEIGHT / 3 * 0.
 RECT_PLAY = pygame.Rect(menu_x, menu_y, width_x, width_y)
 RECT_SETTINGS = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3 * 0.5), width_x, width_y)
 RECT_EXIT = pygame.Rect(menu_x, menu_y + round(HEIGHT / 3), width_x, width_y)
-RECT_GAME_WINDOW = pygame.Rect(0, 0, round(WIDTH / 3 * 2), HEIGHT)
+RECT_GAME_WINDOW = pygame.Rect(0, 0, GAME_WIN, HEIGHT)
 ####################
 all_groups = pygame.sprite.Group()
 walls_groups = pygame.sprite.Group()
@@ -126,6 +126,13 @@ BLANK = load_image('btn_blank.png')
 NOIMAGE = load_image('noimage.png')
 SETTINGS_BG = load_image('settings_bg.png')
 BLANK_BAR = load_image('bar_blank.png')
+###
+T_W = 128
+T_H = 128
+T_SCALE = T_W / CELL_W
+WALLS = {0: load_image('wall.png'),
+         2: load_image('door.png'),
+         3: load_image('door1.png')}
 ###################################
 
 
@@ -173,7 +180,7 @@ class ScoreBar:
         if value > 0:
             self.score += value if self.score + value <= 5 else 0
         else:
-            self.score += value if self.score - value >= 0 else 0
+            self.score += value if self.score + value >= 0 else 0
 
     def draw(self):
         pygame.draw.rect(screen, (40, 40, 40), self.rect)
@@ -288,7 +295,7 @@ def choose_session(seed):
         screen.fill((0, 0, 0))
 
         # Картинка с лого
-        screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
+        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
                                                      HEIGHT)), (0, 0))
         work_with_menu('choose_session')
         seedBar.draw()
@@ -430,7 +437,7 @@ def settings():
         def set_parent(self, parent):
             self.parent = parent
 
-    bg = pygame.transform.scale(SETTINGS_BG, (round(WIDTH / 3 * 2 / 1.05), round(HEIGHT / 1.5)))
+    bg = pygame.transform.scale(SETTINGS_BG, (round(GAME_WIN / 1.05), round(HEIGHT / 1.5)))
     bg_rect = bg.get_rect()
     #####
     # Buttons
@@ -455,11 +462,11 @@ def settings():
         screen.fill((0, 0, 0))
 
         # Картинка с лого
-        screen.blit(pygame.transform.scale(NOIMAGE, (round(WIDTH / 3 * 2),
+        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
                                                      HEIGHT)), (0, 0))
 
         # Отрисовка элементов
-        screen.blit(bg, (round(WIDTH / 3 - bg.get_width() / 2),
+        screen.blit(bg, (round(GAME_WIN / 2 - bg.get_width() / 2),
                          round(HEIGHT / 2 - bg.get_height() / 2)))
         [btn.draw() for btn in all_btns]
         sensBar.draw()

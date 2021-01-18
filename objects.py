@@ -23,9 +23,9 @@ class Meat(pygame.sprite.Sprite):
 
 
 class Door(pygame.sprite.Sprite):
-    def __init__(self, x, y, is_open=False, start=False):
+    def __init__(self, x, y, is_open=False):
         super().__init__(all_groups, doors_groups)
-        self.color = (0, 0, 0) if start else (150, 75, 0)
+        self.color = (150, 75, 0)
         # Физический объект
         self.image = pygame.Surface((CELL_W, CELL_W))
         pygame.draw.rect(self.image, self.color, (0, 0, CELL_W, CELL_W))
@@ -34,25 +34,10 @@ class Door(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = CELL_W * x, CELL_W * y
         # Логика
         self.is_open = is_open
-        self.start = start
 
-    def update(self):
-        """Логика двери, закрытие/открытие"""
-        wall = pygame.sprite.spritecollide(self, walls_groups, False)
-        if wall and self.is_open:
-            wall[0].kill()
-            pygame.draw.rect(self.image, (0, 0, 0), (0, 0, CELL_W, CELL_W))
-        elif not wall and not self.is_open:
-            Wall(self.rect.x // CELL_W, self.rect.y // CELL_W)
-            if self.start:
-                self.image.set_colorkey(self.color)
-            else:
-                pygame.draw.rect(self.image, self.color, (0, 0, CELL_W, CELL_W))
-        if self.start:
-            if not self.is_open:
-                self.color = (150, 150, 150)
-            if pygame.sprite.spritecollideany(self, player_group) is None:
-                self.is_open = False
+    @property
+    def pos(self):
+        return self.rect.x // CELL_W, self.rect.y // CELL_W
 
 
 class ItemUse:
@@ -73,8 +58,10 @@ class ItemUse:
             p_x, p_y = self.player.pos
             cur_angle = self.player.angle
 
-            v_x, v_y = self.args[0][0]
-            v_x, v_y = v_x // CELL_W, v_y // CELL_W
+            v1_x, v1_y = self.args[0][0][0]
+            v2_x, v2_y = self.args[0][0][1]
+            v1_x, v1_y = v1_x // CELL_W, v1_y // CELL_W
+            v2_x, v2_y = v2_x // CELL_W, v2_y // CELL_W
 
             sin_a = math.sin(cur_angle)
             cos_a = math.cos(cur_angle)
@@ -82,7 +69,8 @@ class ItemUse:
             for delta in range(CELL_W):
                 x = p_x + delta * cos_a
                 y = p_y + delta * sin_a
-                if (v_x, v_y) == (int(x // CELL_W), int(y // CELL_W)):
+                if (v1_x, v1_y) == (int(x // CELL_W), int(y // CELL_W)) or \
+                        (v2_x, v2_y) == (int(x // CELL_W), int(y // CELL_W)):
                     self.player.score_bar.update(1)
                     self.player.monster.change_speed()
                     self.slot.object = None
@@ -256,7 +244,7 @@ class Wall(pygame.sprite.Sprite):
 
 class SG(pygame.sprite.Sprite):
     """Объект мини-игры"""
-    def __init__(self, pos, end_door):
+    def __init__(self, pos, end_doors):
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
         super().__init__()
@@ -269,7 +257,7 @@ class SG(pygame.sprite.Sprite):
         self.rect.y = y * CELL_W + randint(0, CELL_W - size)
         # Логика
         self.is_visible = False
-        self.end_door = end_door
+        self.end_doors = end_doors
 
     def add_handler(self, obj):
         """Добавление ссылки на обработчик"""
@@ -280,7 +268,7 @@ class SG(pygame.sprite.Sprite):
         self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
         self.handler.update_sg()
         obj, id = self.handler.statue()
-        Item((self.rect.x, self.rect.y), obj, id, self.end_door)
+        Item((self.rect.x, self.rect.y), obj, id, self.end_doors)
         self.kill()
 
     def update(self, activated=False):
@@ -320,7 +308,7 @@ class SGHandler:
 
 class Player(pygame.sprite.Sprite):
     """Объект игрока"""
-    def __init__(self, pos, w_map):
+    def __init__(self, pos, w_map, end_doors):
         x, y = pos
         size = math.ceil(CELL_W * 0.25)
         super().__init__(all_groups, player_group)
@@ -333,12 +321,14 @@ class Player(pygame.sprite.Sprite):
         # Система координат
         self.w_map = w_map
         self.angle = math.radians(0)
-        self.x, self.y = x + 2, y + 2
-        self.rect.x, self.rect.y = x + 2, y + 2
-        self.fov = math.pi / 2.7
+        self.x, self.y = x + 2 + CELL_W, y + 2
+        self.rect.x, self.rect.y = x + 2 + CELL_W, y + 2
+        self.fov = math.pi / 3
         self.delta_a = self.fov / NUM_RAYS
         # Логика
+        self.end_doors = end_doors
         self.lost = False
+        self.win = False
         self.is_interacting = False
         self.inventory = InventoryManager(self)
         self.item_spawner = ItemSpawner(w_map)
@@ -363,26 +353,32 @@ class Player(pygame.sprite.Sprite):
             x, dx = (cp_x + CELL_W, 1) if cos_a >= 0 else (cp_x, -1)
             for i in range(len(self.w_map)):
                 delta_v = (x - p_x) / cos_a
-                y = p_y + delta_v * sin_a
+                yv = p_y + delta_v * sin_a
                 m = 1 if x < p_x else 0
-                if not self.w_map[int(x // CELL_W - m) % (MAZE_S * 2 + 1), int(y // CELL_W) % (MAZE_S * 2 + 1)]:
+                if self.w_map[int(x // CELL_W - m) % (MAZE_S * 2 + 1), int(yv // CELL_W) % (MAZE_S * 2 + 1)] != 1:
+                    obj_v = self.w_map[int(x // CELL_W - m) % (MAZE_S * 2 + 1), int(yv // CELL_W) % (MAZE_S * 2 + 1)]
                     break
                 x += dx * CELL_W
-            # Вертикали
+            # Горизонтали
             y, dy = (cp_y + CELL_W, 1) if sin_a >= 0 else (cp_y, -1)
             for i in range(len(self.w_map[cp_x // CELL_W])):
                 delta_h = (y - p_y) / sin_a
-                x = p_x + delta_h * cos_a
+                xh = p_x + delta_h * cos_a
                 m = 1 if y < p_y else 0
-                if not self.w_map[int(x // CELL_W) % (MAZE_S * 2 + 1), int(y // CELL_W - m) % (MAZE_S * 2 + 1)]:
+                if self.w_map[int(xh // CELL_W) % (MAZE_S * 2 + 1), int(y // CELL_W - m) % (MAZE_S * 2 + 1)] != 1:
+                    obj_h = self.w_map[int(xh // CELL_W) % (MAZE_S * 2 + 1), int(y // CELL_W - m) % (MAZE_S * 2 + 1)]
                     break
                 y += dy * CELL_W
 
             # Проекция
-            delta = delta_v if delta_v < delta_h else delta_h
-            h = d * CELL_W * 1.2 / delta / math.cos(self.angle - cur_angle)
-            c = 255 / (1 + delta ** 2 * 0.0002)
-            pygame.draw.rect(screen, (c, c // 2, c // 3), (ray * SCALE, HEIGHT // 2 - h // 2, SCALE, h))
+            delta, offset, obj = (delta_v, yv, obj_v) if delta_v < delta_h else (delta_h, xh, obj_h)
+            delta *= math.cos(cur_angle - self.angle)
+            offset = offset / CELL_W - int(offset / CELL_W)
+            h = int(1.5 * d * CELL_W / delta)
+            wall_column = WALLS[obj].subsurface(offset * T_W, 0, 1, T_H)
+            wall_column = pygame.transform.scale(wall_column, (SCALE, h))
+            screen.blit(wall_column, (ray * SCALE, HEIGHT // 2 - h // 2))
+
             cur_angle += self.delta_a
 
     @property
@@ -463,10 +459,23 @@ class Player(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.y = y
             self.y = y
+        if pygame.sprite.spritecollideany(self, doors_groups):
+            if not self.end_doors[0].is_open:
+                self.rect.y = y
+                self.y = y
+            else:
+                self.win = True
         self.rect.x = round(self.x)
         if pygame.sprite.spritecollideany(self, walls_groups):
+            print('a')
             self.rect.x = x
             self.x = x
+        if pygame.sprite.spritecollideany(self, doors_groups):
+            if not self.end_doors[0].is_open:
+                self.rect.x = x
+                self.x = x
+            else:
+                self.win = True
         # Взаимодействие
         sg = pygame.sprite.spritecollide(self, sg_group, False)
         if sg:
