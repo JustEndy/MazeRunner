@@ -70,19 +70,26 @@ class ItemUse:
     def use(self):
         # Статуэтки
         if self.id[:-2] == 'stat':
-            x, y = self.player.x, self.player.y
-            angle = self.player.angle
-            d_x, d_y = ((x + self.player.rect.width // 2 + 0.5 * math.sin(angle)) // CELL_W,
-                        (y + self.player.rect.width // 2 + 0.5 * math.cos(angle)) // CELL_W)
+            p_x, p_y = self.player.pos
+            cur_angle = self.player.angle
+
             v_x, v_y = self.args[0][0]
             v_x, v_y = v_x // CELL_W, v_y // CELL_W
-            if (v_x, v_y) == (int(d_x), int(d_y)):
-                self.player.score_bar.update(1)
-                self.player.monster.change_speed()
-                self.slot.object = None
+
+            sin_a = math.sin(cur_angle)
+            cos_a = math.cos(cur_angle)
+
+            for delta in range(CELL_W):
+                x = p_x + delta * cos_a
+                y = p_y + delta * sin_a
+                if (v_x, v_y) == (int(x // CELL_W), int(y // CELL_W)):
+                    self.player.score_bar.update(1)
+                    self.player.monster.change_speed()
+                    self.slot.object = None
+                    break
         elif self.id == 'chock':
             CHOCK_SOUND.play()
-            self.player.stamina.stamina = FPS * 3
+            self.player.stamina.stamina = FPS * 2
             self.slot.object = None
         elif self.id == 'bell':
             BELL_SOUND.play()
@@ -328,7 +335,7 @@ class Player(pygame.sprite.Sprite):
         self.angle = math.radians(0)
         self.x, self.y = x + 2, y + 2
         self.rect.x, self.rect.y = x + 2, y + 2
-        self.fov = math.pi / 3
+        self.fov = math.pi / 2.7
         self.delta_a = self.fov / NUM_RAYS
         # Логика
         self.lost = False
@@ -342,7 +349,7 @@ class Player(pygame.sprite.Sprite):
     def ray_casting(self):
 
         def mapping(a, b):
-            return a // CELL_W * CELL_W, b // CELL_W * CELL_W
+            return int(a // CELL_W * CELL_W), int(b // CELL_W * CELL_W)
 
         d = NUM_RAYS / (2 * math.tan(self.fov / 2))
         cur_angle = self.angle - self.fov / 2
@@ -380,7 +387,7 @@ class Player(pygame.sprite.Sprite):
 
     @property
     def pos(self):
-        return self.rect.center
+        return self.x + self.rect.w / 2, self.y + self.rect.w / 2
 
     def set_monster(self, m):
         self.monster = m
@@ -437,26 +444,26 @@ class Player(pygame.sprite.Sprite):
 
         if btns[pygame.K_UP] or btns[BTN_F]:
             if pygame.key.get_mods() == 4097 and self.stamina.stamina > 0:
-                self.y += cos * SPEED
-                self.x += sin * SPEED
+                self.y += cos * SPEED * 1.2
+                self.x += sin * SPEED * 1.2
                 self.stamina.update(-1)
             else:
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6
         if btns[pygame.K_DOWN] or btns[BTN_B]:
-            self.y -= cos * SPEED * 0.5
-            self.x -= sin * SPEED * 0.5
+            self.y -= cos * SPEED * 0.3
+            self.x -= sin * SPEED * 0.3
         if btns[pygame.K_LEFT] or btns[BTN_L]:
             self.y -= sin * SPEED * 0.6
             self.x += cos * SPEED * 0.6
         if btns[pygame.K_RIGHT] or btns[BTN_R]:
             self.y += sin * SPEED * 0.6
             self.x -= cos * SPEED * 0.6
-        self.rect.y = math.ceil(self.y)
+        self.rect.y = round(self.y)
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.y = y
             self.y = y
-        self.rect.x = math.ceil(self.x)
+        self.rect.x = round(self.x)
         if pygame.sprite.spritecollideany(self, walls_groups):
             self.rect.x = x
             self.x = x

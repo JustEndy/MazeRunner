@@ -108,7 +108,7 @@ while menu:
                         monster.change_behave()
                     elif event.key == pygame.K_BACKSPACE:
                         # Блок отладки по нажатию на Бэкспейс
-                        player.item_spawner.spawn()
+                        DO2D = not DO2D
                     elif event.key == pygame.K_ESCAPE:
                         run_game = False
                     elif event.key == pygame.K_KP_PLUS:
@@ -141,12 +141,17 @@ while menu:
                 player, monster, exit_door, sg_handler = restart()
 
             all_groups.update()
-            all_groups.draw(screen)
-            doors_groups.draw(screen)
-            player_group.draw(screen)
 
-            # Отрисовка Псевдо 3д
-            player.ray_casting()
+            if DO2D:
+                all_groups.draw(screen)
+                doors_groups.draw(screen)
+                player_group.draw(screen)
+                x = player.x + CELL_W * math.cos(player.angle)
+                y = player.y + CELL_W * math.sin(player.angle)
+                pygame.draw.line(screen, (255, 255, 255), player.pos, (x, y))
+            else:
+                # Отрисовка Псевдо 3д
+                player.ray_casting()
 
             # Отрисовка инвенторя
             player.draw_inventory()

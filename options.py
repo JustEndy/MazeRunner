@@ -85,6 +85,9 @@ pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), Tr
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
 debug_font = pygame.font.SysFont("Console", round(HEIGHT / 36))
 seed_font = pygame.font.SysFont("NSimSun", round(HEIGHT / 26))
+########
+# DEBUG
+DO2D = False
 
 
 def load_image(name, colorkey=None):
@@ -131,19 +134,19 @@ class StaminaBar:
         self.image = pygame.transform.scale(BLANK_BAR, (round(RECT_MENU.w / 5 * 4), round(WIDTH / 25.6)))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = RECT_MENU.x + RECT_MENU.w // 2 - self.rect.w // 2, HEIGHT // 5 - self.rect.h * 0.5
-        self.stamina = FPS * 3
+        self.stamina = FPS * 2
 
     def update(self, value):
         self.stamina += value
-        if self.stamina > FPS * 3:
-            self.stamina = FPS * 3
+        if self.stamina > FPS * 2:
+            self.stamina = FPS * 2
         elif self.stamina < 0:
             self.stamina = 0
 
     def draw(self):
         pygame.draw.rect(screen, (40, 40, 40), self.rect)
         pygame.draw.rect(screen, (153, 153, 153), (self.rect.x, self.rect.y,
-                                                   round(self.rect.w * self.stamina / FPS / 3), self.rect.h))
+                                                   round(self.rect.w * self.stamina / FPS / 2), self.rect.h))
         screen.blit(self.image, (self.rect.x, self.rect.y))
         outline = seed_font.render('STAMINA', True, pygame.Color("Black"))
         btnW_1 = seed_font.render('STAMINA', True, pygame.Color("White"))
