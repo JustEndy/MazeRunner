@@ -20,6 +20,9 @@ def generate_level(world_map):
                 world_map[x + 1][y - 1], world_map[x + 1][y], world_map[x + 1][y + 1]]
         return list(filter(lambda x: isit[ans.index(x)], ans))
 
+    for x in range(1, len(world_map) - 1):
+        for y in range(1, len(world_map[x]) - 1):
+            world_map[x, y] = 1
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
         for y in range(len(world_map[x])):
@@ -55,7 +58,7 @@ def generate_entity():
     pos_p, pos_e, wmap, sg_handler = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     exit_doors = Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W), Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
     player = Player(pos_p, wmap, exit_doors)
-    monster = Enemy(pos_e, player)
+    monster = Enemy(pos_p, player)
     sg_handler.set_monster(monster)
     player.set_monster(monster)
     player.set_sg_handler(sg_handler)
@@ -154,7 +157,7 @@ while menu:
                 pygame.draw.line(screen, (255, 255, 255), player.pos, (x, y))
             else:
                 # Отрисовка Псевдо 3д
-                player.ray_casting()
+                player.draw_world()
 
             # Отрисовка инвенторя
             player.draw_inventory()

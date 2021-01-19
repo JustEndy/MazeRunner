@@ -6,8 +6,9 @@ import random
 
 
 class Meat(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, player):
         super().__init__(all_groups, meat_group)
+        self.player = player
         self.health = FPS * 3
         size = math.ceil(CELL_W * 0.4)
         self.image = pygame.Surface((size, size))
@@ -17,6 +18,7 @@ class Meat(pygame.sprite.Sprite):
 
     def update(self, value=None):
         if self.health <= 0:
+            self.player.meat = None
             self.kill()
         if value is not None:
             self.health += value
@@ -87,7 +89,7 @@ class ItemUse:
         elif self.id == 'pack':
             MEAT_SOUND.play()
             x, y = self.player.x, self.player.y
-            Meat(x, y)
+            self.player.meat = Meat(x, y, self.player)
             self.slot.object = None
 
     def set_player(self, player):
@@ -104,22 +106,17 @@ class Item(pygame.sprite.Sprite):
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
         self.id = id
+        self.args = args
+        self.image = pygame.Surface((size, size))
+        self.sprite_im = obj
         # В зависимости от объекта - своя текстура
         if id[:-2] == 'stat':
-            self.args = args
-            self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 150, 255), (0, 0, size, size))
         elif id == 'chock':
-            self.args = args
-            self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 35, 150), (0, 0, size, size))
         elif id == 'bell':
-            self.args = args
-            self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 150, 35), (0, 0, size, size))
         elif id == 'pack':
-            self.args = args
-            self.image = pygame.Surface((size, size))
             pygame.draw.rect(self.image, (150, 35, 35), (0, 0, size, size))
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
@@ -127,7 +124,7 @@ class Item(pygame.sprite.Sprite):
 
     def go_to_inventory(self):
         if self.id[:-2] != 'stat':
-            self.args[0].amount -= 1
+            self.args[0].amount.remove(self)
         return self.contain
 
 
@@ -135,13 +132,13 @@ class ItemSpawner:
     """Генератор предметов"""
     def __init__(self, w_map):
         self.w_map = w_map
-        self.amount = 0
+        self.amount = list()
         self.sprites = {'chock': load_image('chock.png'),
                         'bell': load_image('bell.png'),
                         'pack': load_image('pack.png')}
 
     def spawn(self):
-        if self.amount < 3:
+        if len(self.amount) < 3:
             if random.random() <= 0.1:
                 c_x, c_y = 0, 0
                 size = math.ceil(CELL_W * 0.4)
@@ -151,8 +148,7 @@ class ItemSpawner:
                 x = c_x * CELL_W + random.randint(0, CELL_W - size)
                 y = c_y * CELL_W + random.randint(0, CELL_W - size)
                 id = random.choice(list(self.sprites.keys()))
-                Item((x, y), self.sprites[id], id, self)
-                self.amount += 1
+                self.amount.append(Item((x, y), self.sprites[id], id, self))
 
 
 class InventoryCell:
@@ -262,13 +258,13 @@ class SG(pygame.sprite.Sprite):
     def add_handler(self, obj):
         """Добавление ссылки на обработчик"""
         self.handler = obj
+        self.sprite_im, self.id = self.handler.statue()
 
     def activated(self):
         """Вызывается при активации игроком"""
         self.handler.monster.set_custom_goal((self.rect.x, self.rect.y))
         self.handler.update_sg()
-        obj, id = self.handler.statue()
-        Item((self.rect.x, self.rect.y), obj, id, self.end_doors)
+        Item((self.rect.x, self.rect.y), self.sprite_im, self.id, self.end_doors)
         self.kill()
 
     def update(self, activated=False):
@@ -335,6 +331,25 @@ class Player(pygame.sprite.Sprite):
         self.score_bar = ScoreBar()
         self.monster = None
         self.sg_handler = None
+        self.meat = None
+
+    def draw_world(self):
+        sg = self.sg_handler.current_sg
+        entities = [Sprite(sg.sprite_im, True, sg.rect.center, 1.8, 0.4)]
+        entities.extend([Sprite(item.sprite_im, True, item.rect.center, 1.8, 0.4) for item in self.item_spawner.amount])
+        entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.8))
+        if self.meat is not None:
+            entities.append(Sprite(load_image('meat.png'), True, (self.meat.rect.x, self.meat.rect.y), 0.8, 0.8))
+
+        world = list()
+        walls = self.ray_casting()
+        world.extend(walls)
+        world.extend([sprite.locate(self, walls) for sprite in entities])
+
+        for obj in sorted(world, key=lambda x: x[0], reverse=True):
+            if obj[0]:
+                dist, image, pos = obj
+                screen.blit(image, pos)
 
     def ray_casting(self):
 
@@ -345,6 +360,7 @@ class Player(pygame.sprite.Sprite):
         cur_angle = self.angle - self.fov / 2
         p_x, p_y = self.pos
         cp_x, cp_y = mapping(p_x, p_y)
+        walls = []
         for ray in range(NUM_RAYS):
             sin_a = math.sin(cur_angle)
             cos_a = math.cos(cur_angle)
@@ -377,9 +393,10 @@ class Player(pygame.sprite.Sprite):
             h = int(1.5 * d * CELL_W / delta)
             wall_column = WALLS[obj].subsurface(offset * T_W, 0, 1, T_H)
             wall_column = pygame.transform.scale(wall_column, (SCALE, h))
-            screen.blit(wall_column, (ray * SCALE, HEIGHT // 2 - h // 2))
+            walls.append((delta, wall_column, (ray * SCALE, HEIGHT // 2 - h // 2)))
 
             cur_angle += self.delta_a
+        return walls
 
     @property
     def pos(self):
@@ -467,7 +484,6 @@ class Player(pygame.sprite.Sprite):
                 self.win = True
         self.rect.x = round(self.x)
         if pygame.sprite.spritecollideany(self, walls_groups):
-            print('a')
             self.rect.x = x
             self.x = x
         if pygame.sprite.spritecollideany(self, doors_groups):
@@ -507,14 +523,17 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos, player, coef=0.4):
         x, y = pos
         super().__init__(all_groups, enemy_group)
+        # Визуал
+        self.sprites = []
+        self.cut_sheet(load_image('demon.png'), 8, 1)
         # Физический объект
-        size = math.ceil(CELL_W * 0.75)
+        size = math.ceil(CELL_W * 0.5)
         self.image = pygame.Surface((size, size))
         pygame.draw.rect(self.image, (225, 175, 175), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Всё, что связано с передвижением и системой координат
-        self.x, self.y = x + 2 - CELL_W, y + 2
-        self.rect.x, self.rect.y = x + 2 - CELL_W, y + 2
+        self.x, self.y = x + 2 + CELL_W * 2, y + 2
+        self.rect.x, self.rect.y = x + 2 + CELL_W * 2, y + 2
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
         self.path = []
@@ -524,6 +543,16 @@ class Enemy(pygame.sprite.Sprite):
         # Скорость
         self.speed_coef = coef
         self.speed = SPEED * self.speed_coef
+
+    def cut_sheet(self, sheet, columns, rows):
+        rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                           sheet.get_height() // rows)
+
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (rect.w * i, rect.h * j)
+                self.sprites.append(sheet.subsurface(pygame.Rect(
+                    frame_location, rect.size)))
 
     def change_speed(self):
         """Изменение скорости монстра в зависимости от переменной Score"""
@@ -565,63 +594,64 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         """Передвижение"""
-        if pygame.sprite.spritecollideany(self, player_group):
-            self.player.lost = True
-            return
-        if len(self.path) <= 1:
-            x, y = self.rect.x, self.rect.y
-            if self.player.x > x:
-                self.x += self.speed
-            elif self.player.x < x:
-                self.x -= self.speed
-            self.rect.x = int(self.x)
-            if pygame.sprite.spritecollideany(self, walls_groups):
-                self.rect.x = x
-                self.x = x
-            if self.player.y > y:
-                self.y += self.speed
-            elif self.player.y < y:
-                self.y -= self.speed
-            self.rect.y = int(self.y)
-            if pygame.sprite.spritecollideany(self, walls_groups):
-                self.rect.y = y
-                self.y = y
-            return
-        x, y = self.rect.x, self.rect.y
-        x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
-        x2, y2 = self.path[1]
-
-        if (self.cell_x, self.cell_y) == (x2, y2):
-            self.path.pop(0)
-            return
-
-        x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
-        if x1 < x2:
-            self.x += self.speed
-        elif x1 >= x2:
-            self.x -= self.speed
-        self.rect.x = int(self.x)
-        if pygame.sprite.spritecollideany(self, walls_groups):
-            self.rect.x = x
-            self.x = x
-        meat = pygame.sprite.spritecollide(self, meat_group, False)
-        if meat:
-            meat[0].update(-1)
-            self.rect.x = x
-            self.x = x
-        if y1 < y2:
-            self.y += self.speed
-        elif y1 > y2:
-            self.y -= self.speed
-        self.rect.y = int(self.y)
-        if pygame.sprite.spritecollideany(self, walls_groups):
-            self.rect.y = y
-            self.y = y
-        if meat:
-            meat[0].update(-1)
-            self.rect.y = y
-            self.y = y
-        self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
+        pass
+        # if pygame.sprite.spritecollideany(self, player_group):
+        #     self.player.lost = True
+        #     return
+        # if len(self.path) <= 1:
+        #     x, y = self.rect.x, self.rect.y
+        #     if self.player.x > x:
+        #         self.x += self.speed
+        #     elif self.player.x < x:
+        #         self.x -= self.speed
+        #     self.rect.x = int(self.x)
+        #     if pygame.sprite.spritecollideany(self, walls_groups):
+        #         self.rect.x = x
+        #         self.x = x
+        #     if self.player.y > y:
+        #         self.y += self.speed
+        #     elif self.player.y < y:
+        #         self.y -= self.speed
+        #     self.rect.y = int(self.y)
+        #     if pygame.sprite.spritecollideany(self, walls_groups):
+        #         self.rect.y = y
+        #         self.y = y
+        #     return
+        # x, y = self.rect.x, self.rect.y
+        # x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
+        # x2, y2 = self.path[1]
+        #
+        # if (self.cell_x, self.cell_y) == (x2, y2):
+        #     self.path.pop(0)
+        #     return
+        #
+        # x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
+        # if x1 < x2:
+        #     self.x += self.speed
+        # elif x1 >= x2:
+        #     self.x -= self.speed
+        # self.rect.x = int(self.x)
+        # if pygame.sprite.spritecollideany(self, walls_groups):
+        #     self.rect.x = x
+        #     self.x = x
+        # meat = pygame.sprite.spritecollide(self, meat_group, False)
+        # if meat:
+        #     meat[0].update(-1)
+        #     self.rect.x = x
+        #     self.x = x
+        # if y1 < y2:
+        #     self.y += self.speed
+        # elif y1 > y2:
+        #     self.y -= self.speed
+        # self.rect.y = int(self.y)
+        # if pygame.sprite.spritecollideany(self, walls_groups):
+        #     self.rect.y = y
+        #     self.y = y
+        # if meat:
+        #     meat[0].update(-1)
+        #     self.rect.y = y
+        #     self.y = y
+        # self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
 
     def get_path(self, args):
         """Возвращает список координат, путь монстра"""

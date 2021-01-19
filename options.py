@@ -3,7 +3,7 @@ import pygame
 from maze import *
 from os import path as ospath
 from sys import exit as sysexit
-from math import ceil as cl
+import math
 
 # GAME SETTINGS
 if ospath.isfile('settings.txt'):
@@ -40,7 +40,7 @@ else:
 SEED = randint(0, 999999)
 ###################
 # Должно быть чётным, иначе генератор падает
-MAZE_S = 14
+MAZE_S = 4
 FPS = 60
 CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
@@ -134,6 +134,55 @@ WALLS = {0: load_image('wall.png'),
          2: load_image('door.png'),
          3: load_image('door1.png')}
 ###################################
+
+
+class Sprite:
+    def __init__(self, image, static, pos, shift, scale):
+        self.image = image
+        self.static = static
+        self.pos = self.x, self.y = pos
+        self.shift = shift
+        self.scale = scale
+        if not static:
+            self.sprite_angles = [frozenset(range(i, i + 45)) for i in range(0, 360, 45)]
+            self.sprite_positions = {angle: pos for angle, pos in zip(self.sprite_angles, self.image)}
+
+    def locate(self, player, walls):
+        d = NUM_RAYS / (2 * math.tan(player.fov / 2))
+        dy, dx = self.x - player.x + player.rect.w / 2, self.y - player.y + player.rect.h / 2
+        distance = math.sqrt(dx**2 + dy**2)
+
+        theta = math.atan2(dx, dy)
+        gamma = theta - player.angle
+        if dy > 0 and 180 <= math.degrees(player.angle) <= 360 or dx < 0 and dy < 0:
+            gamma += math.pi * 2
+
+        delta_rays = int(gamma / player.delta_a)
+        cur_ray = (delta_rays + NUM_RAYS // 2)
+        distance *= math.cos(player.fov // 2 * cur_ray * player.delta_a)
+
+        fake_walls = [walls[0] for _ in range(100)] + walls + [walls[-1] for _ in range(100)]
+        fake_ray = cur_ray + 100
+        if 0 <= fake_ray <= NUM_RAYS - 1 + 200 and distance < fake_walls[fake_ray][0]:
+            h = min(int(1.5 * d * CELL_W / distance * self.scale), int(HEIGHT / 1.2))
+            shift = h // 2 * self.shift
+
+            if not self.static:
+                if theta < 0:
+                    theta += math.pi * 2
+                theta = int(math.degrees(theta) + 22)
+
+                for angles in self.sprite_angles:
+                    if theta in angles:
+                        self.image = self.sprite_positions[angles]
+                        break
+                else:
+                    self.image = self.sprite_positions[self.sprite_angles[0]]
+
+            pos = (cur_ray * SCALE - h // 2, HEIGHT // 2 - h // 2 + shift)
+            sprite = pygame.transform.scale(self.image, (h, h))
+            return distance, sprite, pos
+        return (False,)
 
 
 class StaminaBar:
