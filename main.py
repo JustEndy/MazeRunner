@@ -23,6 +23,7 @@ def generate_level(world_map):
     for x in range(1, len(world_map) - 1):
         for y in range(1, len(world_map[x]) - 1):
             world_map[x, y] = 1
+
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
         for y in range(len(world_map[x])):

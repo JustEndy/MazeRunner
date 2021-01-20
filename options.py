@@ -40,7 +40,7 @@ else:
 SEED = randint(0, 999999)
 ###################
 # Должно быть чётным, иначе генератор падает
-MAZE_S = 4
+MAZE_S = 2
 FPS = 60
 CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
@@ -164,7 +164,7 @@ class Sprite:
         fake_walls = [walls[0] for _ in range(100)] + walls + [walls[-1] for _ in range(100)]
         fake_ray = cur_ray + 100
         if 0 <= fake_ray <= NUM_RAYS - 1 + 200 and distance < fake_walls[fake_ray][0]:
-            h = min(int(1.5 * d * CELL_W / distance * self.scale), int(HEIGHT / 1.2))
+            h = min(int(1.5 * d * CELL_W / distance * self.scale), int(HEIGHT / 0.6))
             shift = h // 2 * self.shift
 
             if not self.static:

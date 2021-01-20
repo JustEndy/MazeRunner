@@ -18,7 +18,7 @@ class Meat(pygame.sprite.Sprite):
 
     def update(self, value=None):
         if self.health <= 0:
-            self.player.meat = None
+            self.player.meat.remove(self)
             self.kill()
         if value is not None:
             self.health += value
@@ -89,7 +89,7 @@ class ItemUse:
         elif self.id == 'pack':
             MEAT_SOUND.play()
             x, y = self.player.x, self.player.y
-            self.player.meat = Meat(x, y, self.player)
+            self.player.meat.append(Meat(x, y, self.player))
             self.slot.object = None
 
     def set_player(self, player):
@@ -126,6 +126,10 @@ class Item(pygame.sprite.Sprite):
         if self.id[:-2] != 'stat':
             self.args[0].amount.remove(self)
         return self.contain
+
+    @property
+    def pos(self):
+        return self.rect.x, self.rect.y
 
 
 class ItemSpawner:
@@ -331,15 +335,16 @@ class Player(pygame.sprite.Sprite):
         self.score_bar = ScoreBar()
         self.monster = None
         self.sg_handler = None
-        self.meat = None
+        self.meat = []
 
     def draw_world(self):
         sg = self.sg_handler.current_sg
-        entities = [Sprite(sg.sprite_im, True, sg.rect.center, 1.8, 0.4)]
-        entities.extend([Sprite(item.sprite_im, True, item.rect.center, 1.8, 0.4) for item in self.item_spawner.amount])
-        entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.8))
-        if self.meat is not None:
-            entities.append(Sprite(load_image('meat.png'), True, (self.meat.rect.x, self.meat.rect.y), 0.8, 0.8))
+        entities = [Sprite(sg.sprite_im, True, sg.rect.topleft, 1.6, 0.4)]
+        entities.extend([Sprite(item.sprite_im, True, item.pos, 2.8, 0.3) for item in self.item_spawner.amount])
+        entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.6))
+        if self.meat:
+            for meat in self.meat:
+                entities.append(Sprite(load_image('meat.png'), True, (meat.rect.x, meat.rect.y), 0.8, 0.4))
 
         world = list()
         walls = self.ray_casting()
@@ -526,6 +531,7 @@ class Enemy(pygame.sprite.Sprite):
         # Визуал
         self.sprites = []
         self.cut_sheet(load_image('demon.png'), 8, 1)
+        self.angle = 0
         # Физический объект
         size = math.ceil(CELL_W * 0.5)
         self.image = pygame.Surface((size, size))
@@ -594,7 +600,6 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         """Передвижение"""
-        pass
         # if pygame.sprite.spritecollideany(self, player_group):
         #     self.player.lost = True
         #     return
