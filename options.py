@@ -47,7 +47,7 @@ CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
 SPEED = HEIGHT / 360 * 0.5
 SCORE = 0
 pygame.init()
-pygame.display.set_caption('Maze Runner | Work in Progress')
+pygame.display.set_caption('Maze: Runner')
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 maze = Maze(MAZE_S, MAZE_S).get_maze()
@@ -109,14 +109,21 @@ def load_image(name, colorkey=None):
     return image
 
 
-def load_sound(name):
+def load_sound(name, value=None):
     fullname = ospath.join('data', 'sounds', name)
     if not ospath.isfile(fullname):
         print(f"Звук с изображением '{fullname}' не найден")
         sysexit()
-    return pygame.mixer.Sound(fullname)
+    sound = pygame.mixer.Sound(fullname)
+    if value is not None:
+        sound.set_volume(value)
+    return sound
 
 
+DOOR_SOUND = load_sound('door.wav')
+SCORE_SOUND = load_sound('score.wav')
+PICKUP = load_sound('pickup.wav')
+STEP = load_sound('step.wav', value=0.2)
 BTN_SOUND = load_sound('btn_click.wav')
 CHOCK_SOUND = load_sound('chocolate.wav')
 BELL_SOUND = load_sound('bell.wav')
@@ -128,6 +135,9 @@ BLANK = load_image('btn_blank.png')
 NOIMAGE = load_image('noimage.png')
 SETTINGS_BG = load_image('settings_bg.png')
 BLANK_BAR = load_image('bar_blank.png')
+LOGO = load_image('logo.png')
+
+pygame.display.set_icon(load_image('stat_0.png'))
 ###
 T_W = 128
 T_H = 128
@@ -306,8 +316,8 @@ def game_over_message(player):
         screen.fill((0, 0, 0))
 
         # Картинка с лого
-        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
-                                                     HEIGHT)), (0, 0))
+        screen.blit(pygame.transform.scale(LOGO, (RECT_GAME_WINDOW.w,
+                                                  HEIGHT)), (0, 0))
 
         # Отрисовка элементов
         screen.blit(bg, bg_rect.topleft)
@@ -361,7 +371,7 @@ def work_with_menu(from_where=''):
     if from_where == 'menu':
         text = ['PLAY', 'SETTINGS', 'EXIT GAME']
     elif from_where == 'choose_session':
-        text = ['FREE RUN', 'TUTORIAL', 'MENU']
+        text = ['RUN', 'MENU']
     elif from_where == 'game':
         text = ['RETURN', 'SETTINGS', 'EXIT']
     elif from_where == 'settings':
@@ -392,8 +402,8 @@ def choose_session(seed):
         screen.fill((0, 0, 0))
 
         # Картинка с лого
-        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
-                                                     HEIGHT)), (0, 0))
+        screen.blit(pygame.transform.scale(LOGO, (RECT_GAME_WINDOW.w,
+                                                  HEIGHT)), (0, 0))
         work_with_menu('choose_session')
         seedBar.draw()
         for event in pygame.event.get():
@@ -404,8 +414,6 @@ def choose_session(seed):
                     BTN_SOUND.play()
                     return True, True, seedBar.seed
                 elif RECT_SETTINGS.collidepoint(event.pos):
-                    BTN_SOUND.play()
-                elif RECT_EXIT.collidepoint(event.pos):
                     BTN_SOUND.play()
                     return True, False, False
                 elif seedBar.rect.collidepoint(event.pos):
@@ -542,13 +550,13 @@ def settings():
     btnL = Button(bg_rect.x + WIDTH // 8, bg_rect.y + HEIGHT // 2.5, 'BTN_L', option_list[2])
     btnR = Button(bg_rect.x + WIDTH // 3.3, bg_rect.y + HEIGHT // 2.5, 'BTN_R', option_list[3])
     btnB = Button(bg_rect.x + WIDTH // 4.7, bg_rect.y + HEIGHT // 2.4, 'BTN_B', option_list[4])
-    btnI = Button(bg_rect.x + WIDTH // 2, bg_rect.y + HEIGHT // 3.4, 'BTN_INTERACT', option_list[5])
+    btnI = Button(bg_rect.x + GAME_WIN * 0.75, bg_rect.y + HEIGHT // 3.4, 'BTN_INTERACT', option_list[5])
     all_btns = [btnF, btnL, btnR, btnB, btnI]
     [i.set_parent(all_btns) for i in all_btns]
     # Sens Bar
-    sensBar = Bar(bg_rect.x + WIDTH // 3, bg_rect.y + HEIGHT // 1.4, option_list[0])
+    sensBar = Bar(bg_rect.x + GAME_WIN * 0.47, bg_rect.y + HEIGHT // 1.4, option_list[0])
     # Window Size
-    btnWin = BtnSize(bg_rect.x + WIDTH // 9, bg_rect.y + HEIGHT // 1.5, option_list[7])
+    btnWin = BtnSize(bg_rect.x + GAME_WIN * 0.16, bg_rect.y + HEIGHT // 1.5, option_list[7])
     #####
     all_obj = [sensBar]
     all_obj.extend(all_btns)
@@ -559,8 +567,8 @@ def settings():
         screen.fill((0, 0, 0))
 
         # Картинка с лого
-        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
-                                                     HEIGHT)), (0, 0))
+        screen.blit(pygame.transform.scale(LOGO, (RECT_GAME_WINDOW.w,
+                                                  HEIGHT)), (0, 0))
 
         # Отрисовка элементов
         screen.blit(bg, (round(GAME_WIN / 2 - bg.get_width() / 2),

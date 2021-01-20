@@ -6,6 +6,7 @@ import random
 
 
 class Meat(pygame.sprite.Sprite):
+    """Физ. объект куска мяса, временно останавливает монстра"""
     def __init__(self, x, y, player):
         super().__init__(all_groups, meat_group)
         self.player = player
@@ -76,6 +77,7 @@ class ItemUse:
                     self.player.score_bar.update(1)
                     self.player.monster.change_speed()
                     self.slot.object = None
+                    SCORE_SOUND.play()
                     break
         elif self.id == 'chock':
             CHOCK_SOUND.play()
@@ -125,6 +127,7 @@ class Item(pygame.sprite.Sprite):
     def go_to_inventory(self):
         if self.id[:-2] != 'stat':
             self.args[0].amount.remove(self)
+        PICKUP.play()
         return self.contain
 
     @property
@@ -156,6 +159,7 @@ class ItemSpawner:
 
 
 class InventoryCell:
+    """Ячейка инвенторя"""
     def __init__(self, point, manager):
         self.image = pygame.transform.scale(load_image('cell_inv.png'), (WIDTH // 10, WIDTH // 10))
         self.rect = self.image.get_rect()
@@ -243,7 +247,7 @@ class Wall(pygame.sprite.Sprite):
 
 
 class SG(pygame.sprite.Sprite):
-    """Объект мини-игры"""
+    """Физ. объект статуэтки"""
     def __init__(self, pos, end_doors):
         x, y = pos
         size = math.ceil(CELL_W * 0.4)
@@ -253,8 +257,8 @@ class SG(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (255, 255, 153), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Координаты
-        self.rect.x = x * CELL_W + randint(0, CELL_W - size)
-        self.rect.y = y * CELL_W + randint(0, CELL_W - size)
+        self.rect.x = x * CELL_W + CELL_W // 2 - self.rect.w // 2 # randint(0, CELL_W - size)
+        self.rect.y = y * CELL_W + CELL_W // 2 - self.rect.w // 2# randint(0, CELL_W - size)
         # Логика
         self.is_visible = False
         self.end_doors = end_doors
@@ -278,7 +282,7 @@ class SG(pygame.sprite.Sprite):
 
 
 class SGHandler:
-    """Объект для обработки всех мини-игр"""
+    """Объект для обработки всех статуэток"""
     def __init__(self, sgs):
         self.list = sgs
         self.current_sg = random.choice(self.list)
@@ -298,7 +302,7 @@ class SGHandler:
         self.monster = m
 
     def update_sg(self):
-        """Меняем нынешнюю активную игру"""
+        """Меняем нынешнюю активную статуэтку"""
         self.list.remove(self.current_sg)
         if self.list:
             self.current_sg = random.choice(self.list)
@@ -326,6 +330,7 @@ class Player(pygame.sprite.Sprite):
         self.fov = math.pi / 3
         self.delta_a = self.fov / NUM_RAYS
         # Логика
+        self.step = FPS // 2
         self.end_doors = end_doors
         self.lost = False
         self.win = False
@@ -338,8 +343,9 @@ class Player(pygame.sprite.Sprite):
         self.meat = []
 
     def draw_world(self):
+        """Отрисовка всего и вся"""
         sg = self.sg_handler.current_sg
-        entities = [Sprite(sg.sprite_im, True, sg.rect.topleft, 1.6, 0.4)]
+        entities = [Sprite(sg.sprite_im, True, (sg.rect.x - self.rect.w // 2, sg.rect.y - self.rect.w // 2), 1.6, 0.4)]
         entities.extend([Sprite(item.sprite_im, True, item.pos, 2.8, 0.3) for item in self.item_spawner.amount])
         entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.6,
                                self.monster.angle))
@@ -362,6 +368,7 @@ class Player(pygame.sprite.Sprite):
             screen.blit(text, (GAME_WIN // 2 - text.get_width() // 2, 0))
 
     def ray_casting(self):
+        """Пускание лучей из камеры, определение расстояния до стен"""
 
         def mapping(a, b):
             return int(a // CELL_W * CELL_W), int(b // CELL_W * CELL_W)
@@ -469,7 +476,7 @@ class Player(pygame.sprite.Sprite):
         self.angle = (2 * math.pi + self.angle) % (2 * math.pi) if self.angle >= 0 else self.angle % (2 * math.pi)
 
     def update(self):
-        """Передвижение"""
+        """Логика и Передвижение"""
         btns = pygame.key.get_pressed()
         x, y = self.rect.x, self.rect.y
         cos, sin = math.sin(self.angle), \
@@ -478,10 +485,18 @@ class Player(pygame.sprite.Sprite):
         if not any(btns):
             self.stamina.update(0.5)
         else:
-            if pygame.key.get_mods() != 4097:
-                self.stamina.update(0.25)
+            if any((btns[BTN_F], btns[BTN_B], btns[BTN_L], btns[BTN_R])):
+                if pygame.key.get_mods() != 4097:
+                    self.stamina.update(0.25)
+                    if self.step <= 0:
+                        STEP.play()
+                        self.step = FPS // 2
+                elif self.step <= 0:
+                    STEP.play()
+                    self.step = FPS // 4
+        self.step -= 1
 
-        if btns[pygame.K_UP] or btns[BTN_F]:
+        if btns[BTN_F]:
             if pygame.key.get_mods() == 4097 and self.stamina.stamina > 0:
                 self.y += cos * SPEED * 1.2
                 self.x += sin * SPEED * 1.2
@@ -489,7 +504,7 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6
-        if btns[pygame.K_DOWN] or btns[BTN_B]:
+        if btns[BTN_B]:
             if pygame.key.get_mods() == 4097 and self.stamina.stamina > 0:
                 self.y -= cos * SPEED
                 self.x -= sin * SPEED
@@ -497,10 +512,10 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.y -= cos * SPEED * 0.6
                 self.x -= sin * SPEED * 0.6
-        if btns[pygame.K_LEFT] or btns[BTN_L]:
+        if btns[BTN_L]:
             self.y -= sin * SPEED * 0.6
             self.x += cos * SPEED * 0.6
-        if btns[pygame.K_RIGHT] or btns[BTN_R]:
+        if btns[BTN_R]:
             self.y += sin * SPEED * 0.6
             self.x -= cos * SPEED * 0.6
         self.rect.y = round(self.y)
@@ -537,6 +552,7 @@ class Player(pygame.sprite.Sprite):
             self.inventory.pickup(item[0])
 
     def interact_text(self):
+        """Вывод текста о возможности взаимодействовать"""
         final = pygame.Surface((WIDTH, HEIGHT))
         final.fill((0, 0, 0))
         final.set_colorkey((0, 0, 0))
@@ -551,6 +567,7 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
+    """Физ. объект монстра"""
     def __init__(self, pos, player, coef=0.4):
         x, y = pos
         super().__init__(all_groups, enemy_group)
@@ -578,6 +595,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = SPEED * self.speed_coef
 
     def cut_sheet(self, sheet, columns, rows):
+        """Весёлая нарезка спрайтов"""
         rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                            sheet.get_height() // rows)
 
@@ -635,7 +653,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.path = self.get_path(self.bfs(goal))
 
     def update(self):
-        """Передвижение"""
+        """Логика и Передвижение"""
         if self.agro_timer == 5 * FPS:
             self.change_behave(True)
         elif self.agro_timer == 0:

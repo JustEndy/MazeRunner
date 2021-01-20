@@ -86,6 +86,7 @@ while menu:
     if run_pause:
         random.seed(SEED_BAR.seed)
         player, monster, exit_doors, sg_handler = restart()
+        play_doorsound = True
     while run_pause:
         if run_game:
             pygame.mouse.set_visible(False)
@@ -106,7 +107,7 @@ while menu:
                     if event.key == pygame.K_RETURN:
                         monster.change_behave()
                     elif event.key == pygame.K_BACKSPACE:
-                        # Блок отладки по нажатию на Бэкспейс
+                        # Мини-карта для дебага
                         DO2D = not DO2D
                     elif event.key == pygame.K_ESCAPE:
                         run_game = False
@@ -128,10 +129,14 @@ while menu:
                 for door in exit_doors:
                     door.is_open = True
                     player.w_map[door.pos] = 3
+                if play_doorsound:
+                    DOOR_SOUND.play()
+                    play_doorsound = False
             else:
                 for door in exit_doors:
                     door.is_open = False
                     player.w_map[door.pos] = 2
+                play_doorsound = True
 
             # Меняем угол направления взгляда с помощью мышки
             mouse_pos = pygame.mouse.get_pos()
@@ -221,7 +226,7 @@ while menu:
     screen.fill((0, 0, 0))
 
     # Картинка с лого
-    screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w, RECT_GAME_WINDOW.h)), (0, 0))
+    screen.blit(pygame.transform.scale(LOGO, (RECT_GAME_WINDOW.w, RECT_GAME_WINDOW.h)), (0, 0))
     work_with_menu('menu')
 
     player = game_over_message(player)
