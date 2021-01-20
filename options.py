@@ -40,7 +40,7 @@ else:
 SEED = randint(0, 999999)
 ###################
 # Должно быть чётным, иначе генератор падает
-MAZE_S = 2
+MAZE_S = 14
 FPS = 60
 CENTER = WIDTH // 2, HEIGHT // 2
 CELL_W = round(HEIGHT / (MAZE_S * 2 + 1))
@@ -54,6 +54,8 @@ maze = Maze(MAZE_S, MAZE_S).get_maze()
 ####################
 ### RAY CAST ###
 NUM_RAYS = 400
+FAKE_RAYS = 100
+FAKE_RAYS_RANGE = NUM_RAYS - 1 + 2 * FAKE_RAYS
 DEPTH = 300
 SCALE = round(WIDTH / 3 * 2 / NUM_RAYS)
 GAME_WIN = SCALE * NUM_RAYS
@@ -163,8 +165,8 @@ class Sprite:
         distance *= math.cos(player.fov // 2 * cur_ray * player.delta_a)
 
         fake_walls = [walls[0] for _ in range(100)] + walls + [walls[-1] for _ in range(100)]
-        fake_ray = cur_ray + 100
-        if 0 <= fake_ray <= NUM_RAYS - 1 + 200 and distance < fake_walls[fake_ray][0]:
+        fake_ray = cur_ray + FAKE_RAYS
+        if 0 <= fake_ray <= FAKE_RAYS_RANGE and distance > 10:
             h = min(int(1.5 * d * CELL_W / distance * self.scale), int(HEIGHT / 0.6))
             shift = h // 2 * self.shift
 

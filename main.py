@@ -55,7 +55,7 @@ def generate_entity():
     pos_p, pos_e, wmap, sg_handler = generate_level(Maze(MAZE_S, MAZE_S).get_maze())
     exit_doors = Door(pos_p[0] // CELL_W, pos_p[1] // CELL_W), Door(pos_e[0] // CELL_W, pos_e[1] // CELL_W)
     player = Player(pos_p, wmap, exit_doors)
-    monster = Enemy(pos_p, player)
+    monster = Enemy(pos_e, player)
     sg_handler.set_monster(monster)
     player.set_monster(monster)
     player.set_sg_handler(sg_handler)
@@ -72,6 +72,7 @@ def restart():
     player_group.empty()
     enemy_group.empty()
     sg_group.empty()
+    meat_group.empty()
     # Создаём сущности
     return generate_entity()
 

@@ -10,7 +10,7 @@ class Meat(pygame.sprite.Sprite):
         super().__init__(all_groups, meat_group)
         self.player = player
         self.health = FPS * 3
-        size = math.ceil(CELL_W * 0.4)
+        size = math.ceil(CELL_W * 0.6)
         self.image = pygame.Surface((size, size))
         pygame.draw.rect(self.image, (150, 35, 35), (0, 0, size, size))
         self.rect = self.image.get_rect()
@@ -310,7 +310,7 @@ class Player(pygame.sprite.Sprite):
     """Объект игрока"""
     def __init__(self, pos, w_map, end_doors):
         x, y = pos
-        size = math.ceil(CELL_W * 0.25)
+        size = math.ceil(CELL_W * 0.4)
         super().__init__(all_groups, player_group)
         # Физический объект
         self.image = pygame.Surface((size, size))
@@ -357,6 +357,10 @@ class Player(pygame.sprite.Sprite):
                 dist, image, pos = obj
                 screen.blit(image, pos)
 
+        if self.monster.aggressive:
+            text = pause_font.render('RUN', True, pygame.Color("Red"))
+            screen.blit(text, (GAME_WIN // 2 - text.get_width() // 2, 0))
+
     def ray_casting(self):
 
         def mapping(a, b):
@@ -396,7 +400,7 @@ class Player(pygame.sprite.Sprite):
             delta, offset, obj = (delta_v, yv, obj_v) if delta_v < delta_h else (delta_h, xh, obj_h)
             delta *= math.cos(cur_angle - self.angle)
             offset = offset / CELL_W - int(offset / CELL_W)
-            h = int(1.5 * d * CELL_W / delta)
+            h = min(int(1.5 * d * CELL_W / delta), HEIGHT * 3)
             wall_column = WALLS[obj].subsurface(offset * T_W, 0, 1, T_H)
             wall_column = pygame.transform.scale(wall_column, (SCALE, h))
             walls.append((delta, wall_column, (ray * SCALE, HEIGHT // 2 - h // 2)))
@@ -411,7 +415,7 @@ class Player(pygame.sprite.Sprite):
         gamma = theta - math.radians(self.monster.angle)
         if dy > 0 and 180 <= self.monster.angle <= 360 or dx < 0 and dy < 0:
             gamma += math.pi * 2
-        delta_a = math.pi / 3 / NUM_RAYS
+        delta_a = math.pi / 6 / NUM_RAYS
         delta_rays = int(gamma / delta_a)
         cur_ray = (delta_rays + NUM_RAYS // 2)
         distance *= math.cos(math.pi / 3 // 2 * cur_ray * delta_a)
@@ -486,8 +490,13 @@ class Player(pygame.sprite.Sprite):
                 self.y += cos * SPEED * 0.6
                 self.x += sin * SPEED * 0.6
         if btns[pygame.K_DOWN] or btns[BTN_B]:
-            self.y -= cos * SPEED * 0.3
-            self.x -= sin * SPEED * 0.3
+            if pygame.key.get_mods() == 4097 and self.stamina.stamina > 0:
+                self.y -= cos * SPEED
+                self.x -= sin * SPEED
+                self.stamina.update(-1)
+            else:
+                self.y -= cos * SPEED * 0.6
+                self.x -= sin * SPEED * 0.6
         if btns[pygame.K_LEFT] or btns[BTN_L]:
             self.y -= sin * SPEED * 0.6
             self.x += cos * SPEED * 0.6
@@ -555,8 +564,8 @@ class Enemy(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, (225, 175, 175), (0, 0, size, size))
         self.rect = self.image.get_rect()
         # Всё, что связано с передвижением и системой координат
-        self.x, self.y = x + 2 + CELL_W * 2, y + 2
-        self.rect.x, self.rect.y = x + 2 + CELL_W * 2, y + 2
+        self.x, self.y = x + 2 - CELL_W, y + 2
+        self.rect.x, self.rect.y = x + 2 - CELL_W, y + 2
         self.cell_x, self.cell_y = x // CELL_W, y // CELL_W
         self.player = player
         self.path = []
@@ -586,9 +595,9 @@ class Enemy(pygame.sprite.Sprite):
         """Изменение скорости монстра в зависимости от переменной Score"""
         self.speed_coef = 0.4 + self.player.score_bar.score * 0.1
         if self.aggressive:
-            self.speed = SPEED * self.speed_coef * 2
-        else:
             self.speed = SPEED * self.speed_coef
+        else:
+            self.speed = SPEED * self.speed_coef * 0.8
 
     def change_behave(self, agro_timer=None):
         """Изменение поведения Агрессивное/Пассивное, влияет на цель монстра"""
