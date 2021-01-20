@@ -20,10 +20,6 @@ def generate_level(world_map):
                 world_map[x + 1][y - 1], world_map[x + 1][y], world_map[x + 1][y + 1]]
         return list(filter(lambda x: isit[ans.index(x)], ans))
 
-    for x in range(1, len(world_map) - 1):
-        for y in range(1, len(world_map[x]) - 1):
-            world_map[x, y] = 1
-
     potential_start, potential_end = [], []
     for x in range(len(world_map)):
         for y in range(len(world_map[x])):
@@ -81,7 +77,7 @@ def restart():
 
 
 # Окно Pygame
-
+player = None
 menu = True
 run_pause = False
 run_game = True
@@ -93,7 +89,6 @@ while menu:
         if run_game:
             pygame.mouse.set_visible(False)
         while run_game:
-            screen.fill((0, 0, 0))
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     menu = False
@@ -145,11 +140,13 @@ while menu:
 
             # Рестарт уровня
             if player.win or player.lost:
-                player, monster, exit_doors, sg_handler = restart()
+                run_game = False
+                run_pause = False
 
             all_groups.update()
 
             if DO2D:
+                screen.fill((0, 0, 0))
                 all_groups.draw(screen)
                 doors_groups.draw(screen)
                 player_group.draw(screen)
@@ -158,6 +155,7 @@ while menu:
                 pygame.draw.line(screen, (255, 255, 255), player.pos, (x, y))
             else:
                 # Отрисовка Псевдо 3д
+                screen.fill((45, 45, 45))
                 player.draw_world()
 
             # Отрисовка инвенторя
@@ -208,8 +206,7 @@ while menu:
                     BTN_SOUND.play()
                     run_pause = False
 
-        all_groups.draw(screen)
-        player_group.draw(screen)
+        player.draw_world()
 
         # Отрисовываем pause-баннер
         [screen.blit(banner, (0, 0)) for banner in pause_banners()]
@@ -225,6 +222,8 @@ while menu:
     # Картинка с лого
     screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w, RECT_GAME_WINDOW.h)), (0, 0))
     work_with_menu('menu')
+
+    player = game_over_message(player)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

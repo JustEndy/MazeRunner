@@ -341,7 +341,8 @@ class Player(pygame.sprite.Sprite):
         sg = self.sg_handler.current_sg
         entities = [Sprite(sg.sprite_im, True, sg.rect.topleft, 1.6, 0.4)]
         entities.extend([Sprite(item.sprite_im, True, item.pos, 2.8, 0.3) for item in self.item_spawner.amount])
-        entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.6))
+        entities.append(Sprite(self.monster.sprites, False, (self.monster.x, self.monster.y), 0, 0.6,
+                               self.monster.angle))
         if self.meat:
             for meat in self.meat:
                 entities.append(Sprite(load_image('meat.png'), True, (meat.rect.x, meat.rect.y), 0.8, 0.4))
@@ -401,6 +402,22 @@ class Player(pygame.sprite.Sprite):
             walls.append((delta, wall_column, (ray * SCALE, HEIGHT // 2 - h // 2)))
 
             cur_angle += self.delta_a
+
+        # Блок зрения монстра
+        m_x, m_y = self.monster.rect.center
+        dy, dx = m_x - p_x, m_y - p_y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        theta = math.atan2(dx, dy)
+        gamma = theta - math.radians(self.monster.angle)
+        if dy > 0 and 180 <= self.monster.angle <= 360 or dx < 0 and dy < 0:
+            gamma += math.pi * 2
+        delta_a = math.pi / 3 / NUM_RAYS
+        delta_rays = int(gamma / delta_a)
+        cur_ray = (delta_rays + NUM_RAYS // 2)
+        distance *= math.cos(math.pi / 3 // 2 * cur_ray * delta_a)
+        if 0 <= cur_ray <= NUM_RAYS - 1 and distance < walls[cur_ray][0]:
+            self.monster.see_player()
+
         return walls
 
     @property
@@ -546,6 +563,7 @@ class Enemy(pygame.sprite.Sprite):
         self.w_map = player.w_map
         # Сосотояние монстра, Агрессия/Пассивность
         self.aggressive = False
+        self.agro_timer = 0
         # Скорость
         self.speed_coef = coef
         self.speed = SPEED * self.speed_coef
@@ -560,6 +578,10 @@ class Enemy(pygame.sprite.Sprite):
                 self.sprites.append(sheet.subsurface(pygame.Rect(
                     frame_location, rect.size)))
 
+    def see_player(self):
+        """Увидеть игрока"""
+        self.agro_timer = 5 * FPS
+
     def change_speed(self):
         """Изменение скорости монстра в зависимости от переменной Score"""
         self.speed_coef = 0.4 + self.player.score_bar.score * 0.1
@@ -568,9 +590,14 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.speed = SPEED * self.speed_coef
 
-    def change_behave(self):
+    def change_behave(self, agro_timer=None):
         """Изменение поведения Агрессивное/Пассивное, влияет на цель монстра"""
-        self.aggressive = not self.aggressive
+        if agro_timer is None:
+            self.aggressive = not self.aggressive
+        elif agro_timer:
+            self.aggressive = True
+        else:
+            self.aggressive = False
         self.path = []
 
     def random_passive(self):
@@ -600,63 +627,77 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         """Передвижение"""
-        # if pygame.sprite.spritecollideany(self, player_group):
-        #     self.player.lost = True
-        #     return
-        # if len(self.path) <= 1:
-        #     x, y = self.rect.x, self.rect.y
-        #     if self.player.x > x:
-        #         self.x += self.speed
-        #     elif self.player.x < x:
-        #         self.x -= self.speed
-        #     self.rect.x = int(self.x)
-        #     if pygame.sprite.spritecollideany(self, walls_groups):
-        #         self.rect.x = x
-        #         self.x = x
-        #     if self.player.y > y:
-        #         self.y += self.speed
-        #     elif self.player.y < y:
-        #         self.y -= self.speed
-        #     self.rect.y = int(self.y)
-        #     if pygame.sprite.spritecollideany(self, walls_groups):
-        #         self.rect.y = y
-        #         self.y = y
-        #     return
-        # x, y = self.rect.x, self.rect.y
-        # x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
-        # x2, y2 = self.path[1]
-        #
-        # if (self.cell_x, self.cell_y) == (x2, y2):
-        #     self.path.pop(0)
-        #     return
-        #
-        # x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
-        # if x1 < x2:
-        #     self.x += self.speed
-        # elif x1 >= x2:
-        #     self.x -= self.speed
-        # self.rect.x = int(self.x)
-        # if pygame.sprite.spritecollideany(self, walls_groups):
-        #     self.rect.x = x
-        #     self.x = x
-        # meat = pygame.sprite.spritecollide(self, meat_group, False)
-        # if meat:
-        #     meat[0].update(-1)
-        #     self.rect.x = x
-        #     self.x = x
-        # if y1 < y2:
-        #     self.y += self.speed
-        # elif y1 > y2:
-        #     self.y -= self.speed
-        # self.rect.y = int(self.y)
-        # if pygame.sprite.spritecollideany(self, walls_groups):
-        #     self.rect.y = y
-        #     self.y = y
-        # if meat:
-        #     meat[0].update(-1)
-        #     self.rect.y = y
-        #     self.y = y
-        # self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
+        if self.agro_timer == 5 * FPS:
+            self.change_behave(True)
+        elif self.agro_timer == 0:
+            self.change_behave(False)
+        self.agro_timer -= 1 if self.agro_timer - 1 >= -1 else 0
+
+        if pygame.sprite.spritecollideany(self, player_group):
+            self.player.lost = True
+            return
+        if len(self.path) <= 1:
+            x, y = self.rect.x, self.rect.y
+            if self.player.x > x:
+                self.x += self.speed
+            elif self.player.x < x:
+                self.x -= self.speed
+            self.rect.x = int(self.x)
+            if pygame.sprite.spritecollideany(self, walls_groups):
+                self.rect.x = x
+                self.x = x
+            if self.player.y > y:
+                self.y += self.speed
+            elif self.player.y < y:
+                self.y -= self.speed
+            self.rect.y = int(self.y)
+            if pygame.sprite.spritecollideany(self, walls_groups):
+                self.rect.y = y
+                self.y = y
+            return
+        x, y = self.rect.x, self.rect.y
+        x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.w // 2
+        x2, y2 = self.path[1]
+
+        if x1 // CELL_W < x2:
+            self.angle = 180
+        elif x2 < x1 // CELL_W:
+            self.angle = 0
+        elif y1 // CELL_W < y2:
+            self.angle = 270
+        elif y2 < y1 // CELL_W:
+            self.angle = 90
+        if (self.cell_x, self.cell_y) == (x2, y2):
+            self.path.pop(0)
+            return
+
+        x2, y2 = x2 * CELL_W + 2 + self.rect.w // 2, y2 * CELL_W + 2 + self.rect.w // 2
+        if x1 < x2:
+            self.x += self.speed
+        elif x1 >= x2:
+            self.x -= self.speed
+        self.rect.x = int(self.x)
+        if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.x = x
+            self.x = x
+        meat = pygame.sprite.spritecollide(self, meat_group, False)
+        if meat:
+            meat[0].update(-1)
+            self.rect.x = x
+            self.x = x
+        if y1 < y2:
+            self.y += self.speed
+        elif y1 > y2:
+            self.y -= self.speed
+        self.rect.y = int(self.y)
+        if pygame.sprite.spritecollideany(self, walls_groups):
+            self.rect.y = y
+            self.y = y
+        if meat:
+            meat[0].update(-1)
+            self.rect.y = y
+            self.y = y
+        self.cell_x, self.cell_y = self.rect.x // CELL_W, self.rect.y // CELL_W
 
     def get_path(self, args):
         """Возвращает список координат, путь монстра"""

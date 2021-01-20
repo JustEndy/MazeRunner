@@ -137,7 +137,8 @@ WALLS = {0: load_image('wall.png'),
 
 
 class Sprite:
-    def __init__(self, image, static, pos, shift, scale):
+    def __init__(self, image, static, pos, shift, scale, angle=0):
+        self.angle = angle
         self.image = image
         self.static = static
         self.pos = self.x, self.y = pos
@@ -170,7 +171,7 @@ class Sprite:
             if not self.static:
                 if theta < 0:
                     theta += math.pi * 2
-                theta = int(math.degrees(theta) + 22)
+                theta = int(math.degrees(theta) + 22 - self.angle) % 360
 
                 for angles in self.sprite_angles:
                     if theta in angles:
@@ -284,6 +285,49 @@ SEED_BAR = InputBar(RECT_MENU.x + RECT_MENU.w // 2, round(HEIGHT / 4), SEED)
 ##################
 
 
+def game_over_message(player):
+    if player is None:
+        return
+    if not (player.win or player.lost):
+        return
+
+    if player.win:
+        text = pause_font.render('YOU WON', False, (153, 255, 153))
+    elif player.lost:
+        text = pause_font.render('YOU LOST', False, (145, 0, 0))
+
+    bg = pygame.transform.scale(load_image('settings_bg_1.png'), (round(GAME_WIN / 1.05), round(HEIGHT / 1.5)))
+    bg_rect = bg.get_rect()
+    bg_rect.x, bg_rect.y = round(GAME_WIN / 2 - bg.get_width() / 2), round(HEIGHT / 2 - bg.get_height() / 2)
+    menu = True
+    while menu:
+        screen.fill((0, 0, 0))
+
+        # Картинка с лого
+        screen.blit(pygame.transform.scale(NOIMAGE, (RECT_GAME_WINDOW.w,
+                                                     HEIGHT)), (0, 0))
+
+        # Отрисовка элементов
+        screen.blit(bg, bg_rect.topleft)
+        screen.blit(text, (bg_rect.x + bg_rect.w // 2 - text.get_width() // 2,
+                           bg_rect.y + bg_rect.h // 2 - text.get_height() // 2))
+
+        work_with_menu('game_over')
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if RECT_PLAY.collidepoint(event.pos):
+                    BTN_SOUND.play()
+                    return None
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    BTN_SOUND.play()
+                    return None
+
+        pygame.display.flip()
+
+
 def update_fps():
     fps = 'FPS ' + str(int(clock.get_fps()))
     fps_text = debug_font.render(fps, True, pygame.Color("White"))
@@ -320,6 +364,8 @@ def work_with_menu(from_where=''):
         text = ['RETURN', 'SETTINGS', 'EXIT']
     elif from_where == 'settings':
         text = ['SAVE', 'BACK']
+    elif from_where == 'game_over':
+        text = ['OK']
 
     m_pos = pygame.mouse.get_pos()
     for btn in range(len(text)):
