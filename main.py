@@ -1,6 +1,7 @@
 """Основной модуль, корень проекта с логикой"""
 from objects import *
 from options import *
+from datetime import  datetime
 
 
 def generate_level(world_map):
@@ -72,6 +73,7 @@ def restart():
     player_group.empty()
     enemy_group.empty()
     sg_group.empty()
+    item_group.empty()
     meat_group.empty()
     # Создаём сущности
     return generate_entity()
@@ -117,6 +119,9 @@ while menu:
                     elif event.key == pygame.K_KP_MINUS:
                         player.score_bar.update(-1)
                         monster.change_speed()
+                    elif event.key == pygame.K_F2:
+                        filename = f'data/screenshots/{str(datetime.now()).split(".")[0].replace(":", "-")}.png'
+                        pygame.image.save(screen, filename)
                 elif event.type == pygame.MOUSEWHEEL:
                     player.inventory.update(event.y)
                 elif event.type == pygame.MOUSEBUTTONDOWN:

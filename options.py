@@ -137,7 +137,7 @@ SETTINGS_BG = load_image('settings_bg.png')
 BLANK_BAR = load_image('bar_blank.png')
 LOGO = load_image('logo.png')
 
-pygame.display.set_icon(load_image('stat_0.png'))
+pygame.display.set_icon(load_image('door.png'))
 ###
 T_W = 128
 T_H = 128
