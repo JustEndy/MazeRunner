@@ -120,6 +120,7 @@ while menu:
                         player.score_bar.update(-1)
                         monster.change_speed()
                     elif event.key == pygame.K_F2:
+                        # Скриншот
                         filename = f'data/screenshots/{str(datetime.now()).split(".")[0].replace(":", "-")}.png'
                         pygame.image.save(screen, filename)
                 elif event.type == pygame.MOUSEWHEEL:
@@ -181,7 +182,6 @@ while menu:
         ########## GAME PAUSED ##########
 
         pygame.mouse.set_visible(True)
-        screen.fill((0, 0, 0))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -191,6 +191,10 @@ while menu:
                 if event.key == pygame.K_ESCAPE:
                     run_game = True
                     pygame.mouse.set_pos(CENTER)
+                elif event.key == pygame.K_F2:
+                    # Скриншот
+                    filename = f'data/screenshots/{str(datetime.now()).split(".")[0].replace(":", "-")}.png'
+                    pygame.image.save(screen, filename)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
                     BTN_SOUND.play()
@@ -217,6 +221,7 @@ while menu:
                     BTN_SOUND.play()
                     run_pause = False
 
+        screen.fill((0, 0, 0))
         player.draw_world()
 
         # Отрисовываем pause-баннер
