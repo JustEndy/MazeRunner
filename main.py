@@ -100,9 +100,6 @@ while menu:
                     run_game = False
                 if event.type == PATHTIME:
                     monster.update_goal()
-                elif event.type == HEARTBEAT:
-                    player.heartbeat((monster.rect.x + monster.rect.w // 2,
-                                      monster.rect.y + monster.rect.h // 2))
                 elif event.type == ITEMSPAWN:
                     player.item_spawner.spawn()
                 elif event.type == pygame.KEYDOWN:
@@ -136,7 +133,6 @@ while menu:
                     door.is_open = True
                     player.w_map[door.pos] = 3
                 if play_doorsound:
-                    DOOR_SOUND.play()
                     play_doorsound = False
             else:
                 for door in exit_doors:
@@ -197,11 +193,9 @@ while menu:
                     pygame.image.save(screen, filename)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     run_game = True
                     pygame.mouse.set_pos(CENTER)
                 elif RECT_SETTINGS.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     args = settings()
                     if not args:
                         menu = False
@@ -218,7 +212,6 @@ while menu:
                             f.write(f'WIDTH={args[6][1]}\n')
                             f.write(f'HEIGHT={args[6][0]}\n')
                 elif RECT_EXIT.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     run_pause = False
 
         screen.fill((0, 0, 0))
@@ -246,12 +239,10 @@ while menu:
             menu = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if RECT_PLAY.collidepoint(event.pos):
-                BTN_SOUND.play()
                 menu, run_pause, seed = choose_session(SEED_BAR)
                 if seed:
                     SEED_BAR.seed = seed
             elif RECT_SETTINGS.collidepoint(event.pos):
-                BTN_SOUND.play()
                 args = settings()
                 if not args:
                     menu = False
@@ -269,7 +260,6 @@ while menu:
                         f.write(f'HEIGHT={args[6][0]}\n')
             elif RECT_EXIT.collidepoint(event.pos):
                 menu = False
-                BTN_SOUND.play()
 
     pygame.display.flip()
     clock.tick(FPS)

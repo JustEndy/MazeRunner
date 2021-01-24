@@ -77,11 +77,9 @@ item_group = pygame.sprite.Group()
 meat_group = pygame.sprite.Group()
 ####################
 PATHTIME = pygame.USEREVENT + 1
-HEARTBEAT = pygame.USEREVENT + 0
 ITEMSPAWN = pygame.USEREVENT + 2
 pygame.time.set_timer(ITEMSPAWN, 1000)
 pygame.time.set_timer(PATHTIME, 100)
-pygame.time.set_timer(HEARTBEAT, 100)
 ####################
 pause_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 7.2), True)
 btn_font = pygame.font.SysFont("Bahnschrift SemiBold", round(HEIGHT / 14.4), True)
@@ -109,26 +107,6 @@ def load_image(name, colorkey=None):
     return image
 
 
-def load_sound(name, value=None):
-    fullname = ospath.join('data', 'sounds', name)
-    if not ospath.isfile(fullname):
-        print(f"Звук с изображением '{fullname}' не найден")
-        sysexit()
-    sound = pygame.mixer.Sound(fullname)
-    if value is not None:
-        sound.set_volume(value)
-    return sound
-
-
-DOOR_SOUND = load_sound('door.wav')
-SCORE_SOUND = load_sound('score.wav')
-PICKUP = load_sound('pickup.wav')
-STEP = load_sound('step.wav', value=0.2)
-BTN_SOUND = load_sound('btn_click.wav')
-CHOCK_SOUND = load_sound('chocolate.wav')
-BELL_SOUND = load_sound('bell.wav')
-HEART_S = load_sound('heart_s.wav')
-MEAT_SOUND = load_sound('meat.wav')
 GAME_BG = load_image('game_bg.png')
 MENU_BG = load_image('menu_bg.png')
 BLANK = load_image('btn_blank.png')
@@ -330,11 +308,9 @@ def game_over_message(player):
                 return None
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     return None
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    BTN_SOUND.play()
                     return None
 
         pygame.display.flip()
@@ -411,13 +387,10 @@ def choose_session(seed):
                 return False, False, False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     return True, True, seedBar.seed
                 elif RECT_SETTINGS.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     return True, False, False
                 elif seedBar.rect.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     seedBar.activated = True
                 else:
                     seedBar.activated = False
@@ -583,23 +556,18 @@ def settings():
                 return False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if RECT_PLAY.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     return [obj.save() for obj in all_obj]
                 elif RECT_SETTINGS.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     return [None]
                 elif sensBar.rect.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     sensBar.change_percent(event.pos)
                 elif btnWin.rect.collidepoint(event.pos):
-                    BTN_SOUND.play()
                     btnWin.change_size()
                 else:
                     choosed_btn = None
                     for btn in all_btns:
                         btn.choosed = False
                         if btn.rect.collidepoint(event.pos):
-                            BTN_SOUND.play()
                             btn.choose()
                             choosed_btn = btn
             elif event.type == pygame.KEYDOWN:

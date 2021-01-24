@@ -77,19 +77,15 @@ class ItemUse:
                     self.player.score_bar.update(1)
                     self.player.monster.change_speed()
                     self.slot.object = None
-                    SCORE_SOUND.play()
                     break
         elif self.id == 'chock':
-            CHOCK_SOUND.play()
             self.player.stamina.stamina = FPS * 2
             self.slot.object = None
         elif self.id == 'bell':
-            BELL_SOUND.play()
             x, y = self.player.x, self.player.y
             self.player.monster.set_custom_goal((x, y))
             self.slot.object = None
         elif self.id == 'pack':
-            MEAT_SOUND.play()
             x, y = self.player.x, self.player.y
             self.player.meat.append(Meat(x, y, self.player))
             self.slot.object = None
@@ -127,7 +123,6 @@ class Item(pygame.sprite.Sprite):
     def go_to_inventory(self):
         if self.id[:-2] != 'stat':
             self.args[0].amount.remove(self)
-        PICKUP.play()
         return self.contain
 
     @property
@@ -441,22 +436,6 @@ class Player(pygame.sprite.Sprite):
     def set_sg_handler(self, h):
         self.sg_handler = h
 
-    def heartbeat(self, pos):
-        """Проигрывает звук сердца, если рядом монстр"""
-        x, y = pos
-        x1, y1 = self.rect.x + self.rect.w // 2, self.rect.y + self.rect.h // 2
-        length = math.sqrt((x1 - x)**2 + (y1 - y)**2) / MAZE_S * (HEIGHT / 720)
-        if 5 < length <= 10:
-            HEART_S.set_volume(1 - length / 10)
-            HEART_S.play()
-            pygame.time.set_timer(HEARTBEAT, round(HEART_S.get_length() * 100) * 10)
-        elif length <= 5:
-            HEART_S.set_volume(1 - length / 10)
-            HEART_S.play()
-            pygame.time.set_timer(HEARTBEAT, round(HEART_S.get_length() * 100) * 5)
-        else:
-            pygame.time.set_timer(HEARTBEAT, 100)
-
     def draw_inventory(self):
         """Отрисовывает все данные и инвентарь игрока"""
         # Фон
@@ -489,10 +468,7 @@ class Player(pygame.sprite.Sprite):
                 if pygame.key.get_mods() != 4097:
                     self.stamina.update(0.25)
                     if self.step <= 0:
-                        STEP.play()
                         self.step = FPS // 2
-                elif self.step <= 0:
-                    STEP.play()
                     self.step = FPS // 4
         self.step -= 1
 
